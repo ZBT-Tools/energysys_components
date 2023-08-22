@@ -1,0 +1,7 @@
+plotly
+numpy
+pandas
+matplotlib
+setuptools
+scipy
+jupyterlab
