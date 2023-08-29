@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     fig = go.Figure(data=[go.Sankey(
         valueformat=".0f",
-        valuesuffix="TWh",
+        valuesuffix="kW",
         # Define nodes
         node=dict(
             pad=15,
