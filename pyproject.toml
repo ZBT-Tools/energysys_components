@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "energysys_components"
+version = "0.0.1"
+authors = [
+  { name="Florian Kuschel", email="f.kuschel@zbt.de" },
+]
+description = "Energy System Component Package"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ZBT-Tools/energysys_components"
+"Bug Tracker" = "https://github.com/ZBT-Tools/energysys_components/issues"
