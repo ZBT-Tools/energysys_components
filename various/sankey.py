@@ -17,17 +17,16 @@ def sankey_input_single(res: pd.Series) -> (dict, dict):
         target: list,   as source
         value:  list,   flow value
 
-
-
     :return: "node" and  "link"-dict
     """
 
     # Node definition
     # !!id key is just for information!
     node_def = [dict(label="Source", color="rgba(0,0,0,0)", id=0),
-                dict(label="Comp", color="#9e9da1", id=1),
-                dict(label="Output", color="rgba(0,0,0,0)", id=2),
-                dict(label="Loss", color="rgba(255,255,255,0)", id=3)]
+                dict(label="Start Source", color="rgba(0,0,0,0)", id=1),
+                dict(label="Comp", color="#9e9da1", id=2),
+                dict(label="Output", color="rgba(0,0,0,0)", id=3),
+                dict(label="Loss", color="rgba(255,255,255,0)", id=4)]
 
     # Plotly node format
     node = dict(label=[dct["label"] for dct in node_def],
@@ -38,7 +37,9 @@ def sankey_input_single(res: pd.Series) -> (dict, dict):
 
     # Flow  definition
     flow_def = [
-        dict(label="Input", source=gx("Source"), target=gx("Comp"), value=res.P_in, color="#3ec757"),
+        dict(label="Input", source=gx("Source"), target=gx("Comp"), value=res.P_in_op, color="#3ec757"),
+        dict(label="Input Start", source=gx("Start Source"), target=gx("Comp"), value=res.P_in_hp,
+             color="#3ec757"),
         dict(label="Loss", source=gx("Comp"), target=gx("Loss"), value=res.P_loss, color="#c75e3e"),
         dict(label="Output", source=gx("Comp"), target=gx("Output"), value=res.P_out, color="#3e9ec7")
     ]

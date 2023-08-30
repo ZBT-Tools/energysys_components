@@ -128,6 +128,14 @@ class EConversionState:
     P_in: float = 0  # [kW]
     W_in_01: float = 0  # [kWh]
 
+    # Input portion heatup
+    P_in_hp: float = 0  # [kW]
+    W_in_01_hp: float = 0  # [kWh]
+
+    # Input portion operation
+    P_in_op: float = 0  # [kW]
+    W_in_01_op: float = 0  # [kWh]
+
     # Output
     P_out: float = 0  # [kW]
     W_out_01: float = 0  # [kWh]
@@ -198,11 +206,21 @@ class EnergyConversion:
 
         :param hypothetical_step: bool, If true, perform method, but without actually returning
          updated state
+
+         Structure:
+
+         1.) State calculations prior to action
+         2.) Control action
+         3.) Efficiency calculation
+         4.) Calculation of state variables (P,W,...)
+         5.) Energy balance calculation
+         6.) Update state variables
+
         """
 
-        # # State calculations prior to action
-        # # ---------------------------------------------------------
-        # Explaination: Below minimum load corner point, real component output load is zero.
+        # 1.) State calculations prior to action
+        # ---------------------------------------------------------
+        # Info: Below minimum load corner point, real component output load is zero.
         #               However for calculation of changes in heatup or cooldown states it is
         #               used as an artificial variable (for simplicity) and is therefore calculated
         #               below based on the below-load-operation state variable heatup_pct.
@@ -218,8 +236,8 @@ class EnergyConversion:
 
         heatup_pct = self.state.heatup_pct
 
-        # # Control action
-        # # ---------------------------------------------------------
+        # 2.) Control action
+        # ---------------------------------------------------------
         error = 0  # Init error code
 
         if not self.par.control_type_target:
@@ -311,15 +329,16 @@ class EnergyConversion:
                                     P_out_pct - self.par.p_change_sd_pct * self.ts)
                     heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
 
-        # Efficiency calculation
+        # 3.) Efficiency calculation
         # ---------------------------------------------------------
         if heatup_pct < 100:
             eta_perc_1 = self.par.eta_preparation
         else:
             eta_perc_1 = self.par.eta_pct_ip(P_out_pct).item(0)
 
-        # Update state vars - Calculation of required input and output power and energy
+        # 4.) Calculation of state variables (P,W,...)
         # ---------------------------------------------------------
+        # Case distinction between pure load operation, below-load-operation and combinations
 
         if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):  # -> Startup or holding idle
             # Energy amount for 'holding prior idle state (loss compensation)', if required
@@ -344,11 +363,13 @@ class EnergyConversion:
             W_startup_combined = W_compens + W_startup
 
             # State variables
-            state_W_in_01 = W_startup_combined
-            state_W_loss_01 = state_W_in_01 * ((100 - self.par.eta_preparation) /
-                                               100) + W_compens_loss
+            state_W_in_01_hp = W_startup_combined
+            state_W_in_01_op = 0
+            state_W_loss_01 = state_W_in_01_hp * ((100 - self.par.eta_preparation) /
+                                                  100) + W_compens_loss
 
-            state_P_in = state_W_in_01 / (self.ts / 60)
+            state_P_in_hp = state_W_in_01_hp / (self.ts / 60)
+            state_P_in_op = 0
             state_P_loss = state_W_loss_01 / (self.ts / 60)
 
             # No output energy / load for heatup / coastdown state
@@ -356,20 +377,19 @@ class EnergyConversion:
             state_P_out = 0
 
         elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):  # Coasting down
-
             # If required calculate operating portion of input energy
             if self.state.heatup_pct == 100:
                 eta_pct_01 = (self.state.eta_pct +
                               self.par.eta_pct_ip(self.par.P_out_min_pct).item(0)) / 2
 
-                W_in_01_operation = ((self.state.P_in + self.par.P_in_min) /
-                                     2 * (load_operation_time / 60))
-                W_loss_01_operation = W_in_01_operation * (100 - eta_pct_01) / 100
+                W_in_01_op = ((self.state.P_in + self.par.P_in_min) /
+                              2 * (load_operation_time / 60))
+                W_loss_01_op = W_in_01_op * (100 - eta_pct_01) / 100
                 W_out_01 = (self.state.P_out + self.par.P_out_min) / 2 * (
                         load_operation_time / 60)
             else:
-                W_in_01_operation = 0
-                W_loss_01_operation = 0
+                W_in_01_op = 0
+                W_loss_01_op = 0
                 W_out_01 = 0
 
             coastdown_time = self.ts - load_operation_time
@@ -383,20 +403,22 @@ class EnergyConversion:
             if P_out_pct > P_out_cooldownst_pct - diff_cooldown_max_pct:
                 diff_load_perc = P_out_pct - (P_out_cooldownst_pct - diff_cooldown_max_pct)
                 W_diff = diff_load_perc / self.par.P_out_min_pct * self.par.W_preparation
-                W_in_01_coastdown = W_diff
+                W_in_01_hp = W_diff
             else:
-                W_in_01_coastdown = 0
+                W_in_01_hp = 0
 
             W_loss_01_coastdown = (diff_cooldown_max_pct /
                                    self.par.P_out_min_pct) * self.par.W_preparation_heat
 
             # New state variables
-            state_W_in_01 = W_in_01_coastdown + W_in_01_operation
-            state_W_loss_01 = W_loss_01_coastdown + W_loss_01_operation
+            state_W_in_01_op = W_in_01_op
+            state_W_in_01_hp = W_in_01_hp
+            state_W_loss_01 = W_loss_01_coastdown + W_loss_01_op
 
             # Power at end of time step is mean energy of coast down, not inluding prior load
             # operation
-            state_P_in = W_in_01_coastdown / (coastdown_time / 60)
+            state_P_in_hp = W_in_01_hp / (coastdown_time / 60)
+            state_P_in_op = 0
             state_P_loss = W_loss_01_coastdown / (coastdown_time / 60)
 
             # No output load for heatup/coastdown state
@@ -411,78 +433,87 @@ class EnergyConversion:
             W_out_01 = (max(self.state.P_out, self.par.P_out_min) + P_out) / 2 * (
                     load_operation_time / 60)
 
-            P_in = P_out / (eta_perc_1 / 100)
+            P_in_op = P_out / (eta_perc_1 / 100)
 
             # If required calculate starting portion of input energy
             if self.state.heatup_pct < 100:
-                # starting_time = self.ts - load_operation_time
-                W_startup = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
+                W_in_01_hp = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
+                W_loss_01_starting = W_in_01_hp * ((100 - self.par.eta_preparation) / 100)
 
-                W_in_01_starting = W_startup
-                W_loss_01_starting = W_startup * ((100 - self.par.eta_preparation) / 100)
-
-                W_in_01_operation = (self.par.P_in_min + P_in) / 2 * (load_operation_time / 60)
-                eta_pct_op1 = (self.par.eta_pct_ip(self.par.P_out_min_pct).item(0) +
-                               eta_perc_1) / 2
-                W_loss_01_operation = W_in_01_operation * (100 - eta_pct_op1) / 100
+                W_in_01_op = (self.par.P_in_min + P_in_op) / 2 * (load_operation_time / 60)
+                W_loss_01_operation = W_in_01_op - W_out_01
 
             else:
-                W_in_01_starting = 0
+                W_in_01_hp = 0
                 W_loss_01_starting = 0
-                W_in_01_operation = (self.state.P_in + P_in) / 2 * (load_operation_time / 60)
-                eta_pct_01 = (self.state.eta_pct + eta_perc_1) / 2
-                W_loss_01_operation = W_in_01_operation * (100 - eta_pct_01) / 100
+                W_in_01_op = (self.state.P_in + P_in_op) / 2 * (load_operation_time / 60)
+                W_loss_01_operation = W_in_01_op - W_out_01
 
-            W_in_01_combined = W_in_01_starting + W_in_01_operation
             W_loss_01_combined = W_loss_01_starting + W_loss_01_operation
-            P_loss = P_in * (100 - eta_perc_1) / 100
+            P_loss = P_in_op * (100 - eta_perc_1) / 100
 
             # New state variables
-            state_W_in_01 = W_in_01_combined
+            state_W_in_01_op = W_in_01_op
+            state_W_in_01_hp = W_in_01_hp
             state_W_out_01 = W_out_01
             state_W_loss_01 = W_loss_01_combined
 
-            state_P_in = P_in
+            state_P_in_op = P_in_op
+            state_P_in_hp = 0
             state_P_out = P_out
             state_P_loss = P_loss
 
+        state_P_in = state_P_in_op + state_P_in_hp
+        state_W_in_01 = state_W_in_01_op + state_W_in_01_hp
         state_heatup_pct = heatup_pct
         state_eta_pct = eta_perc_1
         state_opex_Eur = None
         state_errorcode = error
 
-        # Energy balance checks
+        # 5.) Energy balance calculation
         # ---------------------------------------------------------
-        W_heatup = (heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation_heat
-        state_W_balance = state_W_in_01 - state_W_out_01 - state_W_loss_01 - W_heatup
+        # Info: Only calculation of balance, no abort criteria,...
+        W_bulk = (heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation_heat
+        state_W_balance = (state_W_in_01_op + state_W_in_01_hp - state_W_out_01 - state_W_loss_01
+                           - W_bulk)
 
+        # 6.) Update state variables
+        # ---------------------------------------------------------
         if not hypothetical_step:
-            # New state variables
             self.state.W_in_01 = state_W_in_01
             self.state.W_out_01 = state_W_out_01
             self.state.W_loss_01 = state_W_loss_01
+            self.state.W_in_01_hp = state_W_in_01_hp
+            self.state.W_in_01_op = state_W_in_01_op
 
             self.state.P_in = state_P_in
             self.state.P_out = state_P_out
             self.state.P_loss = state_P_loss
+            self.state.P_in_hp = state_P_in_hp
+            self.state.P_in_op = state_P_in_op
 
             self.state.heatup_pct = state_heatup_pct
             self.state.eta_pct = state_eta_pct
 
             self.state.W_balance_01 = state_W_balance
 
-            # To Be implemented
             self.state.opex_Eur = state_opex_Eur
             self.state.errorcode = state_errorcode
+
+            pass
 
         else:
             hypothetical_state = dict()
             hypothetical_state["W_in_01"] = state_W_in_01
+            hypothetical_state["W_in_01_hp"] = state_W_in_01_hp
+            hypothetical_state["W_in_01_op"] = state_W_in_01_op
             hypothetical_state["W_out_01"] = state_W_out_01
             hypothetical_state["W_loss_01"] = state_W_loss_01
             hypothetical_state["W_balance_01"] = state_W_balance
 
             hypothetical_state["P_in"] = state_P_in
+            hypothetical_state["P_in_hp"] = state_P_in_hp
+            hypothetical_state["P_in_op"] = state_P_in_op
             hypothetical_state["P_out"] = state_P_out
             hypothetical_state["P_loss"] = state_P_loss
             hypothetical_state["heatup_pct"] = state_heatup_pct
@@ -541,10 +572,6 @@ class EnergyConversion:
 
             Find P_out for given P_in in:
             P_in * eta(P_out)/ 100 = P_out
-
-        #IDEA: Could use one of the new eta_input-curves instead
-                --> Implemented
-
 
         :param input_load: float, Input load [kW]
 

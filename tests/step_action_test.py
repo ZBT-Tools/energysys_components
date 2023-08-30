@@ -9,7 +9,7 @@ from energy_conversion_classes import EConversionParams, EConversionState, Energ
 
 # Example Definition
 Cracker_fast = EConversionParams(P_out_rated=2000,
-                                 P_out_min_pct=30,
+                                 P_out_min_pct=15,
                                  eta_pct=[
                                      [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85,
                                       90, 95, 100, 105, 110, 115, 120],
