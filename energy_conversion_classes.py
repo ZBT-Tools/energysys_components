@@ -170,14 +170,13 @@ class EnergyConversion:
                  ts: int = 15,
                  debug: bool = False):
         """
-
         :param conv_par:    EConversionParams dataclass object
         :param conv_state:  EConversionState dataclass object
         :param ts:           timestep [min]
         :param debug:       bool flag, not implemented yet
         """
 
-        # ToDO: Check if dataclass object conv_par can be freezed here
+        # ToDO: Check if dataclass object conv_par can be frozen here
 
         self.par = conv_par
         self.ts = ts
