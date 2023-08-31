@@ -20,14 +20,23 @@ class EConversionParams:
     # Load Operation
     P_out_min_pct: float  # Minimum operating load [% Load]
     P_out_rated: int  # Rated Load [kW]
-    eta_pct: list  # Const. or load dependend efficiency [% Efficiency],
-    # or  [[load [%]],[efficiency [%]]]
 
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
 
+    # Main conversion path efficiency
+    eta_main_pct: list  # Const. or load dependend efficiency [% Efficiency],
+    # or  [[load [%]],[efficiency [%]]]
+    # Overall component efficiency
+    eta_all_pct: list  # Const. or load dependend efficiency [% Efficiency],
+    # or  [[load [%]],[efficiency [%]]]
+
     # Shutdown
     t_cooldown: float  # Time until system cooled down [Minutes] ("idle to cool")
+
+    # Secondary energy ratios
+    # 1: input flow, 2: electric
+    split_Psec: list # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
     # Techno-economic
     spec_invest_cost: float  # [€/kW]
@@ -37,7 +46,7 @@ class EConversionParams:
     # Control Settins
     control_type_target: bool  # If true, input is target, not difference action
 
-    eta_preparation: float = 60
+    eta_preparation: float = 60 # For calculation of losses below operation
     norm_limits: list = field(default_factory=lambda: [0, 1])
 
     def __post_init__(self):
@@ -73,26 +82,26 @@ class EConversionParams:
         # Linear efficiency curve interpolator
 
         # Interpolator eta(output load [%]) [%]
-        self.eta_pct_ip = interpolate.interp1d(self.eta_pct[0],
-                                               self.eta_pct[1],
+        self.eta_pct_ip = interpolate.interp1d(self.eta_all_pct[0],
+                                               self.eta_all_pct[1],
                                                kind='linear',
                                                bounds_error=False,
-                                               fill_value=(self.eta_pct[1][0],
-                                                           self.eta_pct[1][-1]))
+                                               fill_value=(self.eta_all_pct[1][0],
+                                                           self.eta_all_pct[1][-1]))
 
         # Interpolator eta(output load [kW]) [%]
         self.eta_kW_ip = interpolate.interp1d(
-            [e / 100 * self.P_out_rated for e in self.eta_pct[0]],
-            self.eta_pct[1],
+            [e / 100 * self.P_out_rated for e in self.eta_all_pct[0]],
+            self.eta_all_pct[1],
             kind='linear',
             bounds_error=False,
-            fill_value=(self.eta_pct[1][0],
-                        self.eta_pct[1][-1]))
+            fill_value=(self.eta_all_pct[1][0],
+                        self.eta_all_pct[1][-1]))
 
         # Interpolator eta(input load [kW]) [%]
-        list_P_out_kW = [ol_perc / 100 * self.P_out_rated for ol_perc in self.eta_pct[0]]
+        list_P_out_kW = [ol_perc / 100 * self.P_out_rated for ol_perc in self.eta_all_pct[0]]
         list_P_in_kW = [ol_perc / 100 * self.P_out_rated /
-                        (self.eta_kW_ip(ol_perc) / 100) for ol_perc in self.eta_pct[0]]
+                        (self.eta_kW_ip(ol_perc) / 100) for ol_perc in self.eta_all_pct[0]]
         list_eta_in_kW = [ol / il * 100 if il != 0 else 0 for ol, il in
                           zip(list_P_out_kW, list_P_in_kW)]
 
@@ -107,8 +116,8 @@ class EConversionParams:
         # Some characteristic loads for convenience:
         # https://stackoverflow.com/questions/2474015/
         # "Getting the index of the returned max or min item using max()/min() on a list"
-        self.P_out_etamax_pct = self.eta_pct[0][max(range(len(self.eta_pct[1])),
-                                                    key=self.eta_pct[1].__getitem__)]
+        self.P_out_etamax_pct = self.eta_all_pct[0][max(range(len(self.eta_all_pct[1])),
+                                                    key=self.eta_all_pct[1].__getitem__)]
 
         self.P_out_etamax = self.P_out_etamax_pct / 100 * self.P_out_rated
         self.P_in_etamax = self.P_out_etamax / (self.eta_pct_ip(self.P_out_etamax_pct) / 100)
