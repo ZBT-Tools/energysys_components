@@ -111,7 +111,7 @@ class EConversionParams:
                                                     key=self.eta_pct[1].__getitem__)]
 
         self.P_out_etamax = self.P_out_etamax_pct / 100 * self.P_out_rated
-        self.P_in_maxeta = self.P_out_etamax / (self.eta_pct_ip(self.P_out_etamax_pct) / 100)
+        self.P_in_etamax = self.P_out_etamax / (self.eta_pct_ip(self.P_out_etamax_pct) / 100)
 
         self.P_out_min = self.P_out_min_pct / 100 * self.P_out_rated
         self.P_in_min = self.P_out_min / (self.eta_pct_ip(self.P_out_min_pct) / 100)
@@ -559,7 +559,7 @@ class EnergyConversion:
             raise Exception("Stationary step did not converge.")
         pass
 
-    def target_from_target_input(self, input_load: float) -> float:
+    def action_for_P_in_target(self, input_load: float) -> float:
         """
         Calculation of action (= load target [0,1]) for step_action()-Method equivalent to
         given input load requirement [kW]
