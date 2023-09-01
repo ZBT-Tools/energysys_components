@@ -24,19 +24,17 @@ class EConversionParams:
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
 
-    # Main conversion path efficiency
-    eta_main_pct: list  # Const. or load dependend efficiency [% Efficiency],
-    # or  [[load [%]],[efficiency [%]]]
     # Overall component efficiency
-    eta_all_pct: list  # Const. or load dependend efficiency [% Efficiency],
-    # or  [[load [%]],[efficiency [%]]]
+    eta_pct: list  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    # Main conversion path efficiency
+    eta_mc_pct: list  # load dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
     t_cooldown: float  # Time until system cooled down [Minutes] ("idle to cool")
 
     # Secondary energy ratios
     # 1: input flow, 2: electric
-    split_Psec: list # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    split_P_sd: list  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
     # Techno-economic
     spec_invest_cost: float  # [€/kW]
@@ -46,7 +44,7 @@ class EConversionParams:
     # Control Settins
     control_type_target: bool  # If true, input is target, not difference action
 
-    eta_preparation: float = 60 # For calculation of losses below operation
+    eta_preparation: float = 60  # For calculation of losses below operation
     norm_limits: list = field(default_factory=lambda: [0, 1])
 
     def __post_init__(self):
@@ -77,31 +75,30 @@ class EConversionParams:
         #           --> cooldown_decr =  2.5% / min
         self.p_change_sd_pct = self.P_out_min_pct / self.t_cooldown
 
-        # Efficiency calculations
+        # Efficiency calculations - overall component
         # ---------------------------------------------------------
-        # Linear efficiency curve interpolator
 
         # Interpolator eta(output load [%]) [%]
-        self.eta_pct_ip = interpolate.interp1d(self.eta_all_pct[0],
-                                               self.eta_all_pct[1],
+        self.eta_pct_ip = interpolate.interp1d(self.eta_pct[0],
+                                               self.eta_pct[1],
                                                kind='linear',
                                                bounds_error=False,
-                                               fill_value=(self.eta_all_pct[1][0],
-                                                           self.eta_all_pct[1][-1]))
+                                               fill_value=(self.eta_pct[1][0],
+                                                           self.eta_pct[1][-1]))
 
         # Interpolator eta(output load [kW]) [%]
         self.eta_kW_ip = interpolate.interp1d(
-            [e / 100 * self.P_out_rated for e in self.eta_all_pct[0]],
-            self.eta_all_pct[1],
+            [e / 100 * self.P_out_rated for e in self.eta_pct[0]],
+            self.eta_pct[1],
             kind='linear',
             bounds_error=False,
-            fill_value=(self.eta_all_pct[1][0],
-                        self.eta_all_pct[1][-1]))
+            fill_value=(self.eta_pct[1][0],
+                        self.eta_pct[1][-1]))
 
         # Interpolator eta(input load [kW]) [%]
-        list_P_out_kW = [ol_perc / 100 * self.P_out_rated for ol_perc in self.eta_all_pct[0]]
+        list_P_out_kW = [ol_perc / 100 * self.P_out_rated for ol_perc in self.eta_pct[0]]
         list_P_in_kW = [ol_perc / 100 * self.P_out_rated /
-                        (self.eta_kW_ip(ol_perc) / 100) for ol_perc in self.eta_all_pct[0]]
+                        (self.eta_kW_ip(ol_perc) / 100) for ol_perc in self.eta_pct[0]]
         list_eta_in_kW = [ol / il * 100 if il != 0 else 0 for ol, il in
                           zip(list_P_out_kW, list_P_in_kW)]
 
@@ -113,18 +110,36 @@ class EConversionParams:
             fill_value=(list_eta_in_kW[0],
                         list_eta_in_kW[-1]))
 
+        # Efficiency calculations - main conversion path
+        # ---------------------------------------------------------
+
+        # Interpolator eta(output load [%]) [%]
+        self.eta_mc_pct_ip = interpolate.interp1d(self.eta_mc_pct[0],
+                                                  self.eta_mc_pct[1],
+                                                  kind='linear',
+                                                  bounds_error=False,
+                                                  fill_value=(self.eta_mc_pct[1][0],
+                                                              self.eta_mc_pct[1][-1]))
+
         # Some characteristic loads for convenience:
         # https://stackoverflow.com/questions/2474015/
         # "Getting the index of the returned max or min item using max()/min() on a list"
-        self.P_out_etamax_pct = self.eta_all_pct[0][max(range(len(self.eta_all_pct[1])),
-                                                    key=self.eta_all_pct[1].__getitem__)]
-
-        self.P_out_etamax = self.P_out_etamax_pct / 100 * self.P_out_rated
-        self.P_in_etamax = self.P_out_etamax / (self.eta_pct_ip(self.P_out_etamax_pct) / 100)
+        self.P_out_etamax_pct = self.eta_pct[0][max(range(len(self.eta_pct[1])),
+                                                    key=self.eta_pct[1].__getitem__)]
 
         self.P_out_min = self.P_out_min_pct / 100 * self.P_out_rated
+        self.P_out_etamax = self.P_out_etamax_pct / 100 * self.P_out_rated
+
         self.P_in_min = self.P_out_min / (self.eta_pct_ip(self.P_out_min_pct) / 100)
         self.P_in_max = self.P_out_rated / (self.eta_pct_ip(100) / 100)
+        self.P_in_etamax = self.P_out_etamax / (self.eta_pct_ip(self.P_out_etamax_pct) / 100)
+
+        self.P_in_mc_min = self.P_out_min / (self.eta_mc_pct_ip(self.P_out_min_pct) / 100)
+        self.P_in_mc_max = self.P_out_rated / (self.eta_mc_pct_ip(100) / 100)
+        self.P_in_mc_etamax = self.P_out_etamax / (self.eta_mc_pct_ip(self.P_out_etamax_pct) / 100)
+
+        self.split_P_sd1 = self.split_P_sd[0] / sum(self.split_P_sd)
+        self.split_P_sd2 = self.split_P_sd[1] / sum(self.split_P_sd)
 
 
 @dataclass(frozen=False)
@@ -137,13 +152,17 @@ class EConversionState:
     P_in: float = 0  # [kW]
     W_in_01: float = 0  # [kWh]
 
-    # Input portion heatup
-    P_in_hp: float = 0  # [kW]
-    W_in_01_hp: float = 0  # [kWh]
+    # Input portion sencondary 1
+    P_in_sd1: float = 0  # [kW]
+    W_in_01_sd1: float = 0  # [kWh]
 
-    # Input portion operation
-    P_in_op: float = 0  # [kW]
-    W_in_01_op: float = 0  # [kWh]
+    # Input portion sencondary 2
+    P_in_sd2: float = 0  # [kW]
+    W_in_01_sd2: float = 0  # [kWh]
+
+    # Input portion main conversion
+    P_in_mc: float = 0  # [kW]
+    W_in_01_mc: float = 0  # [kWh]
 
     # Output
     P_out: float = 0  # [kW]
@@ -153,9 +172,9 @@ class EConversionState:
     P_loss: float = 0  # [kW]
     W_loss_01: float = 0  # [kWh]
 
-    # Startup / Shutdown information
     heatup_pct: float = 0  # [%]
     eta_pct: float = 0  # [%]
+    eta_mc_pct: float = 0  # [%]
     opex_Eur: float = 0  # [€]
 
     # Convergence
@@ -177,12 +196,13 @@ class EnergyConversion:
     def __init__(self, conv_par: EConversionParams,
                  conv_state: EConversionState,
                  ts: int = 15,
-                 debug: bool = False):
+                 # debug: bool = False
+                 ):
         """
         :param conv_par:    EConversionParams dataclass object
         :param conv_state:  EConversionState dataclass object
         :param ts:           timestep [min]
-        :param debug:       bool flag, not implemented yet
+        # :param debug:       bool flag, not implemented yet
         """
 
         # ToDO: Check if dataclass object conv_par can be frozen here
@@ -249,7 +269,7 @@ class EnergyConversion:
         error = 0  # Init error code
 
         if not self.par.control_type_target:
-            # ToDo: needs to be updated '23^
+            # No up-to-date implementation (used for inital RL tests)
             load_operation_time = 0  # min
             pass
 
@@ -343,6 +363,7 @@ class EnergyConversion:
             eta_perc_1 = self.par.eta_preparation
         else:
             eta_perc_1 = self.par.eta_pct_ip(P_out_pct).item(0)
+            eta_mc_perc_1 = self.par.eta_mc_pct_ip(P_out_pct).item(0)
 
         # 4.) Calculation of state variables (P,W,...)
         # ---------------------------------------------------------
@@ -350,20 +371,24 @@ class EnergyConversion:
 
         if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):  # -> Startup or holding idle
             # Energy amount for 'holding prior idle state (loss compensation)', if required
-            # ToDo: condition below is sufficient for rule based control,
-            #       needs to be refined for RL-Approaches
 
             if P_out_pct == P_out_0_pct + self.par.p_change_st_pct * self.ts:
+                # Loss during pure startup is expected to be inlcuded in given W_preparation
+                # and therefore no additional compensation is requred
                 W_compens = 0
                 W_compens_loss = 0
             elif P_out_pct - self.par.p_change_sd_pct * self.ts < 0:
+                # In low heatup state, compesation is neglected, which is
+                # sufficient for rule based control (as this is no reasonable target state),
+                # however needs to be covered ToDo
                 W_compens = 0
                 W_compens_loss = 0
             else:
+                # calculate compensation energy and loss of it
                 W_compens = (self.par.p_change_sd_pct * self.ts / self.par.P_out_min_pct) \
                             * self.par.W_preparation
                 W_compens_loss = (self.par.p_change_sd_pct * self.ts /
-                                  self.par.P_out_min_pct) * self.par.W_preparation_heat
+                                  self.par.P_out_min_pct) * self.par.W_preparation_loss
 
             # Energy amount for 'changing heatup state'
             W_startup = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
@@ -371,58 +396,84 @@ class EnergyConversion:
             W_startup_combined = W_compens + W_startup
 
             # State variables
-            state_W_in_01_hp = W_startup_combined
-            state_W_in_01_op = 0
-            state_W_loss_01 = state_W_in_01_hp * ((100 - self.par.eta_preparation) /
-                                                  100) + W_compens_loss
+            state_W_in_01_mc = 0
+            state_W_loss_01 = W_startup_combined * ((100 - self.par.eta_preparation) /
+                                                    100) + W_compens_loss
 
-            state_P_in_hp = state_W_in_01_hp / (self.ts / 60)
-            state_P_in_op = 0
+            state_W_in_01_sd1 = self.par.split_P_sd1 * W_startup_combined
+            state_W_in_01_sd2 = self.par.split_P_sd2 * W_startup_combined
+
+            state_P_in_sd1 = state_W_in_01_sd1 / (self.ts / 60)
+            state_P_in_sd2 = state_W_in_01_sd2 / (self.ts / 60)
+            state_P_in_mc = 0
             state_P_loss = state_W_loss_01 / (self.ts / 60)
 
             # No output energy / load for heatup / coastdown state
             state_W_out_01 = 0
             state_P_out = 0
 
-        elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):  # Coasting down
+        elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):  # Coasting down / Shutdown
             # If required calculate operating portion of input energy
             if self.state.heatup_pct == 100:
+                # Overall...
                 eta_pct_01 = (self.state.eta_pct +
                               self.par.eta_pct_ip(self.par.P_out_min_pct).item(0)) / 2
 
                 W_in_01_op = ((self.state.P_in + self.par.P_in_min) /
                               2 * (load_operation_time / 60))
+
+                # Main conversion...
+                eta_mc_pct_01 = (self.state.eta_mc_pct +
+                                 self.par.eta_mc_pct_ip(self.par.P_out_min_pct).item(0)) / 2
+                W_in_01_mc_op = ((self.state.P_in_mc + self.par.P_in_mc_min) /
+                                 2 * (load_operation_time / 60))
+
+                # Secondary...
+                W_in_01_sd_op = W_in_01_op - W_in_01_mc_op
+                W_in_01_sd1_op = self.par.split_P_sd1 * W_in_01_sd_op
+                W_in_01_sd2_op = self.par.split_P_sd2 * W_in_01_sd_op
+
                 W_loss_01_op = W_in_01_op * (100 - eta_pct_01) / 100
                 W_out_01 = (self.state.P_out + self.par.P_out_min) / 2 * (
                         load_operation_time / 60)
             else:
                 W_in_01_op = 0
+                W_in_01_mc_op = 0
+                W_in_01_sd1_op = 0
+                W_in_01_sd2_op = 0
                 W_loss_01_op = 0
                 W_out_01 = 0
 
+            # Coast down portion
             coastdown_time = self.ts - load_operation_time
 
-            P_out_cooldownst_pct = min(P_out_0_pct, self.par.P_out_min_pct)
-            # Maximal cooldown during give time:
+            P_out_cooldownst_pct = min(P_out_0_pct, self.par.P_out_min_pct)  # Start of coast down
+            # (Hypothetically) Maximal cooldown during give time:
             diff_cooldown_max_pct = min(self.par.p_change_sd_pct * coastdown_time,
                                         P_out_cooldownst_pct)
 
-            # If required calculate energy amount for coast down
+            # If required calculate energy amount for coast down ( for superposed "heatup")
             if P_out_pct > P_out_cooldownst_pct - diff_cooldown_max_pct:
                 diff_load_perc = P_out_pct - (P_out_cooldownst_pct - diff_cooldown_max_pct)
                 W_diff = diff_load_perc / self.par.P_out_min_pct * self.par.W_preparation
-                W_in_01_hp = W_diff
-            else:
-                W_in_01_hp = 0
+                W_in_01_sd1_cd = self.par.split_P_sd1 * W_diff
+                W_in_01_sd2_cd = self.par.split_P_sd2 * W_diff
 
-            W_loss_01_coastdown = (diff_cooldown_max_pct /
-                                   self.par.P_out_min_pct) * self.par.W_preparation_heat
+            else:
+                diff_load_perc = 0
+                W_in_01_sd1_cd = 0
+                W_in_01_sd2_cd = 0
+
+            W_loss_01_cd = (diff_cooldown_max_pct /
+                            self.par.P_out_min_pct) * self.par.W_preparation_heat + \
+                           (diff_load_perc / self.par.P_out_min_pct) * self.par.W_preparation_loss
 
             # New state variables
-            state_W_in_01_op = W_in_01_op
-            state_W_in_01_hp = W_in_01_hp
-            state_W_loss_01 = W_loss_01_coastdown + W_loss_01_op
+            state_W_in_01_mc = W_in_01_mc_op
+            state_W_in_01_sd1 = W_in_01_sd1_op + W_in_01_sd1_cd
+            state_W_in_01_sd2 = W_in_01_sd1_op + W_in_01_sd2_cd
 
+            state_W_loss_01 = W_loss_01_cd + W_loss_01_op
             # Power at end of time step is mean energy of coast down, not inluding prior load
             # operation
             state_P_in_hp = W_in_01_hp / (coastdown_time / 60)
@@ -471,8 +522,10 @@ class EnergyConversion:
             state_P_out = P_out
             state_P_loss = P_loss
 
-        state_P_in = state_P_in_op + state_P_in_hp
-        state_W_in_01 = state_W_in_01_op + state_W_in_01_hp
+        # Summation of total input energy and load
+        state_W_in_01 = state_W_in_01_mc + state_W_in_01_sd1 + state_W_in_01_sd2
+        state_P_in = state_P_in_mc + state_P_in_sd1 + state_P_in_sd2
+
         state_heatup_pct = heatup_pct
         state_eta_pct = eta_perc_1
         state_opex_Eur = None
