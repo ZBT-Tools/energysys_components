@@ -3,29 +3,10 @@ import plotly.graph_objects as go
 import copy
 import numpy as np
 from src.energysys_components.energy_conversion import EConversionParams,  EConversionState, EnergyConversion
+from src.energysys_components.component_definition import PEM, Cracker
 
-# Example Definition
-Cracker_fast = EConversionParams(P_out_rated=2000,
-                                 P_out_min_pct=15,
-                                 eta_mc_pct=[[0, 100], [100 * 0.178 * 33.3 / 5.2, 100 * 0.178 * 33.3 / 5.2]],
-                                 eta_pct=[
-                                     [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85,
-                                      90, 95, 100, 105, 110, 115, 120],
-                                     [55, 56.43, 57.1, 57.37, 57.33, 57.08, 56.67, 56.12, 55.48,
-                                      54.74, 53.93, 53.06, 52.14,
-                                      51.18, 50.18, 49.16, 48.12, 47.07, 46.01, 44.94, 43.88,
-                                      42.82]],
-                                 split_P_sd=[0.97, 0.03],
-                                 p_change_pos=5,
-                                 p_change_neg=5,
-                                 t_preparation=30,
-                                 W_preparation=150,
-                                 t_cooldown=75,
-                                 spec_invest_cost=100,
-                                 spec_volume=0.0017,
-                                 spec_mass=1,
-                                 norm_limits=[0, 1],
-                                 control_type_target=True)
+# Select component
+component = Cracker
 
 off_state = EConversionState()
 full_load_state = EConversionState(P_in=2000,
@@ -38,12 +19,12 @@ if __name__ == "__main__":
     df1.loc[0] = vars(EConversionState())
 
     # Run different stationary cases for target output load
-    targets = np.linspace(Cracker_fast.P_out_min_pct / 100, 1., 100)
+    targets = np.linspace(component.P_out_min_pct / 100, 1., 100)
 
     for ct, t in enumerate(targets):
         # Initialization of component
         C1_state = EConversionState()
-        C1 = EnergyConversion(Cracker_fast, copy.deepcopy(C1_state), ts=1)
+        C1 = EnergyConversion(component, copy.deepcopy(C1_state), ts=1)
         C1.step_action_stationary(t)
         df1.loc[ct + 1] = vars(C1.state)
 

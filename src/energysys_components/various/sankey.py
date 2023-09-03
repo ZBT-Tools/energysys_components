@@ -1,7 +1,6 @@
 import plotly.graph_objects as go
 import pandas as pd
-from src.energysys_components.energy_carrier import H2, NH3, Loss, Electr
-from src.energysys_components.component_definition import PEM, Cracker
+from energysys_components.energy_carrier import H2, NH3, Loss, Electr
 
 
 def sankey_input_single(res: pd.Series, comptype="PEM") -> (dict, dict):
