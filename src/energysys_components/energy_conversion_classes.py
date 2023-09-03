@@ -150,19 +150,19 @@ class EConversionState:
 
     # Input
     P_in: float = 0  # [kW]
-    W_in_01: float = 0  # [kWh]
-
-    # Input portion sencondary 1
-    P_in_sd1: float = 0  # [kW]
-    W_in_01_sd1: float = 0  # [kWh]
-
-    # Input portion sencondary 2
-    P_in_sd2: float = 0  # [kW]
-    W_in_01_sd2: float = 0  # [kWh]
+    W_in: float = 0  # [kWh]
 
     # Input portion main conversion
     P_in_mc: float = 0  # [kW]
-    W_in_01_mc: float = 0  # [kWh]
+    W_in_mc: float = 0  # [kWh]
+
+    # Input portion sencondary 1
+    P_in_sd1: float = 0  # [kW]
+    W_in_sd1: float = 0  # [kWh]
+
+    # Input portion sencondary 2
+    P_in_sd2: float = 0  # [kW]
+    W_in_sd2: float = 0  # [kWh]
 
     # Output
     P_out: float = 0  # [kW]
@@ -361,6 +361,7 @@ class EnergyConversion:
         # ---------------------------------------------------------
         if heatup_pct < 100:
             eta_perc_1 = self.par.eta_preparation
+            eta_mc_perc_1 = 0
         else:
             eta_perc_1 = self.par.eta_pct_ip(P_out_pct).item(0)
             eta_mc_perc_1 = self.par.eta_mc_pct_ip(P_out_pct).item(0)
@@ -384,27 +385,26 @@ class EnergyConversion:
                 W_compens = 0
                 W_compens_loss = 0
             else:
-                # calculate compensation energy and loss of it
+                # calculate compensation energy and loss of it (just for holding the state)
                 W_compens = (self.par.p_change_sd_pct * self.ts / self.par.P_out_min_pct) \
                             * self.par.W_preparation
-                W_compens_loss = (self.par.p_change_sd_pct * self.ts /
-                                  self.par.P_out_min_pct) * self.par.W_preparation_loss
+                W_compens_loss = W_compens
 
             # Energy amount for 'changing heatup state'
             W_startup = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
+            W_startup_loss = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation_loss)
 
             W_startup_combined = W_compens + W_startup
 
             # State variables
-            state_W_in_01_mc = 0
-            state_W_loss_01 = W_startup_combined * ((100 - self.par.eta_preparation) /
-                                                    100) + W_compens_loss
+            state_W_in_mc = 0
+            state_W_loss_01 = W_compens_loss + W_startup_loss
 
-            state_W_in_01_sd1 = self.par.split_P_sd1 * W_startup_combined
-            state_W_in_01_sd2 = self.par.split_P_sd2 * W_startup_combined
+            state_W_in_sd1 = self.par.split_P_sd1 * W_startup_combined
+            state_W_in_sd2 = self.par.split_P_sd2 * W_startup_combined
 
-            state_P_in_sd1 = state_W_in_01_sd1 / (self.ts / 60)
-            state_P_in_sd2 = state_W_in_01_sd2 / (self.ts / 60)
+            state_P_in_sd1 = state_W_in_sd1 / (self.ts / 60)
+            state_P_in_sd2 = state_W_in_sd2 / (self.ts / 60)
             state_P_in_mc = 0
             state_P_loss = state_W_loss_01 / (self.ts / 60)
 
@@ -419,28 +419,28 @@ class EnergyConversion:
                 eta_pct_01 = (self.state.eta_pct +
                               self.par.eta_pct_ip(self.par.P_out_min_pct).item(0)) / 2
 
-                W_in_01_op = ((self.state.P_in + self.par.P_in_min) /
-                              2 * (load_operation_time / 60))
+                W_in_op = ((self.state.P_in + self.par.P_in_min) /
+                           2 * (load_operation_time / 60))
 
                 # Main conversion...
-                eta_mc_pct_01 = (self.state.eta_mc_pct +
-                                 self.par.eta_mc_pct_ip(self.par.P_out_min_pct).item(0)) / 2
-                W_in_01_mc_op = ((self.state.P_in_mc + self.par.P_in_mc_min) /
-                                 2 * (load_operation_time / 60))
+                # eta_mc_pct_01 = (self.state.eta_mc_pct +
+                #                 self.par.eta_mc_pct_ip(self.par.P_out_min_pct).item(0)) / 2
+                W_in_mc_op = ((self.state.P_in_mc + self.par.P_in_mc_min) /
+                              2 * (load_operation_time / 60))
 
                 # Secondary...
-                W_in_01_sd_op = W_in_01_op - W_in_01_mc_op
-                W_in_01_sd1_op = self.par.split_P_sd1 * W_in_01_sd_op
-                W_in_01_sd2_op = self.par.split_P_sd2 * W_in_01_sd_op
+                W_in_sd_op = W_in_op - W_in_mc_op
+                W_in_sd1_op = self.par.split_P_sd1 * W_in_sd_op
+                W_in_sd2_op = self.par.split_P_sd2 * W_in_sd_op
 
-                W_loss_01_op = W_in_01_op * (100 - eta_pct_01) / 100
+                W_loss_01_op = W_in_op * (100 - eta_pct_01) / 100
                 W_out_01 = (self.state.P_out + self.par.P_out_min) / 2 * (
                         load_operation_time / 60)
             else:
-                W_in_01_op = 0
-                W_in_01_mc_op = 0
-                W_in_01_sd1_op = 0
-                W_in_01_sd2_op = 0
+                # W_in_op = 0
+                W_in_mc_op = 0
+                W_in_sd1_op = 0
+                W_in_sd2_op = 0
                 W_loss_01_op = 0
                 W_out_01 = 0
 
@@ -456,33 +456,33 @@ class EnergyConversion:
             if P_out_pct > P_out_cooldownst_pct - diff_cooldown_max_pct:
                 diff_load_perc = P_out_pct - (P_out_cooldownst_pct - diff_cooldown_max_pct)
                 W_diff = diff_load_perc / self.par.P_out_min_pct * self.par.W_preparation
-                W_in_01_sd1_cd = self.par.split_P_sd1 * W_diff
-                W_in_01_sd2_cd = self.par.split_P_sd2 * W_diff
+                W_in_sd1_cd = self.par.split_P_sd1 * W_diff
+                W_in_sd2_cd = self.par.split_P_sd2 * W_diff
 
             else:
                 diff_load_perc = 0
-                W_in_01_sd1_cd = 0
-                W_in_01_sd2_cd = 0
+                W_in_sd1_cd = 0
+                W_in_sd2_cd = 0
 
             W_loss_01_cd = (diff_cooldown_max_pct /
                             self.par.P_out_min_pct) * self.par.W_preparation_heat + \
                            (diff_load_perc / self.par.P_out_min_pct) * self.par.W_preparation_loss
 
             # New state variables
-            state_W_in_01_mc = W_in_01_mc_op
-            state_W_in_01_sd1 = W_in_01_sd1_op + W_in_01_sd1_cd
-            state_W_in_01_sd2 = W_in_01_sd1_op + W_in_01_sd2_cd
+            state_W_in_mc = W_in_mc_op
+            state_W_in_sd1 = W_in_sd1_op + W_in_sd1_cd
+            state_W_in_sd2 = W_in_sd2_op + W_in_sd2_cd
+            state_W_out_01 = W_out_01
+            state_W_loss_01 = W_loss_01_op + W_loss_01_cd
 
-            state_W_loss_01 = W_loss_01_cd + W_loss_01_op
             # Power at end of time step is mean energy of coast down, not inluding prior load
             # operation
-            state_P_in_hp = W_in_01_hp / (coastdown_time / 60)
-            state_P_in_op = 0
-            state_P_loss = W_loss_01_coastdown / (coastdown_time / 60)
-
+            state_P_in_sd1 = W_in_sd1_cd / (coastdown_time / 60)
+            state_P_in_sd2 = W_in_sd2_cd / (coastdown_time / 60)
+            state_P_loss = W_loss_01_cd / (coastdown_time / 60)
             # No output load for heatup/coastdown state
+            state_P_in_mc = 0
             state_P_out = 0
-            state_W_out_01 = W_out_01
 
         else:  # Load Operation
 
@@ -492,42 +492,52 @@ class EnergyConversion:
             W_out_01 = (max(self.state.P_out, self.par.P_out_min) + P_out) / 2 * (
                     load_operation_time / 60)
 
-            P_in_op = P_out / (eta_perc_1 / 100)
+            P_in = P_out / (eta_perc_1 / 100)
+            P_in_mc = P_out / (eta_mc_perc_1 / 100)
 
             # If required calculate starting portion of input energy
             if self.state.heatup_pct < 100:
-                W_in_01_hp = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
-                W_loss_01_starting = W_in_01_hp * ((100 - self.par.eta_preparation) / 100)
-
-                W_in_01_op = (self.par.P_in_min + P_in_op) / 2 * (load_operation_time / 60)
-                W_loss_01_operation = W_in_01_op - W_out_01
+                # Startup phase
+                W_in_hp = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation)
+                W_loss_01_hp = W_in_hp * ((100 - self.par.eta_preparation) / 100)
+                W_in_sd1_hp = self.par.split_P_sd1 * W_in_hp
+                W_in_sd2_hp = self.par.split_P_sd2 * W_in_hp
 
             else:
-                W_in_01_hp = 0
-                W_loss_01_starting = 0
-                W_in_01_op = (self.state.P_in + P_in_op) / 2 * (load_operation_time / 60)
-                W_loss_01_operation = W_in_01_op - W_out_01
+                # W_in_hp = 0
+                W_loss_01_hp = 0
+                W_in_sd1_hp = 0
+                W_in_sd2_hp = 0
 
-            W_loss_01_combined = W_loss_01_starting + W_loss_01_operation
-            P_loss = P_in_op * (100 - eta_perc_1) / 100
+            # Operating Phase
+            W_in_op = (max(self.state.P_in, self.par.P_in_min) + P_in) / 2 * (
+                        load_operation_time / 60)
+            W_in_mc_op = ((self.state.P_in_mc + P_in_mc) / 2 * (load_operation_time / 60))
+            W_in_sd_op = W_in_op - W_in_mc_op
+            W_in_sd1_op = self.par.split_P_sd1 * W_in_sd_op
+            W_in_sd2_op = self.par.split_P_sd2 * W_in_sd_op
+            W_loss_01_op = W_in_op - W_out_01
 
             # New state variables
-            state_W_in_01_op = W_in_01_op
-            state_W_in_01_hp = W_in_01_hp
+            state_W_in_mc = W_in_mc_op
+            state_W_in_sd1 = W_in_sd1_op + W_in_sd1_hp
+            state_W_in_sd2 = W_in_sd2_op + W_in_sd2_hp
             state_W_out_01 = W_out_01
-            state_W_loss_01 = W_loss_01_combined
+            state_W_loss_01 = W_loss_01_op + W_loss_01_hp
 
-            state_P_in_op = P_in_op
-            state_P_in_hp = 0
+            state_P_in_mc = P_in_mc
+            state_P_in_sd1 = (P_in - P_in_mc) * self.par.split_P_sd1
+            state_P_in_sd2 = (P_in - P_in_mc) * self.par.split_P_sd2
+            state_P_loss = P_in - P_out
             state_P_out = P_out
-            state_P_loss = P_loss
 
         # Summation of total input energy and load
-        state_W_in_01 = state_W_in_01_mc + state_W_in_01_sd1 + state_W_in_01_sd2
+        state_W_in = state_W_in_mc + state_W_in_sd1 + state_W_in_sd2
         state_P_in = state_P_in_mc + state_P_in_sd1 + state_P_in_sd2
 
         state_heatup_pct = heatup_pct
         state_eta_pct = eta_perc_1
+        state_eta_mc_pct = eta_mc_perc_1
         state_opex_Eur = None
         state_errorcode = error
 
@@ -535,26 +545,29 @@ class EnergyConversion:
         # ---------------------------------------------------------
         # Info: Only calculation of balance, no abort criteria,...
         W_bulk = (heatup_pct - self.state.heatup_pct) / 100 * self.par.W_preparation_heat
-        state_W_balance = (state_W_in_01_op + state_W_in_01_hp - state_W_out_01 - state_W_loss_01
-                           - W_bulk)
+        state_W_balance = (state_W_in_mc + state_W_in_sd1 + state_W_in_sd2
+                           - state_W_out_01 - state_W_loss_01 - W_bulk)
 
         # 6.) Update state variables
         # ---------------------------------------------------------
         if not hypothetical_step:
-            self.state.W_in_01 = state_W_in_01
+            self.state.W_in = state_W_in
+            self.state.W_in_mc = state_W_in_mc
+            self.state.W_in_sd1 = state_W_in_sd1
+            self.state.W_in_sd2 = state_W_in_sd2
             self.state.W_out_01 = state_W_out_01
             self.state.W_loss_01 = state_W_loss_01
-            self.state.W_in_01_hp = state_W_in_01_hp
-            self.state.W_in_01_op = state_W_in_01_op
 
             self.state.P_in = state_P_in
+            self.state.P_in_mc = state_P_in_mc
+            self.state.P_in_sd1 = state_P_in_sd1
+            self.state.P_in_sd2 = state_P_in_sd2
             self.state.P_out = state_P_out
             self.state.P_loss = state_P_loss
-            self.state.P_in_hp = state_P_in_hp
-            self.state.P_in_op = state_P_in_op
 
             self.state.heatup_pct = state_heatup_pct
             self.state.eta_pct = state_eta_pct
+            self.state.eta_mc_pct = state_eta_mc_pct
 
             self.state.W_balance_01 = state_W_balance
 
@@ -565,20 +578,24 @@ class EnergyConversion:
 
         else:
             hypothetical_state = dict()
-            hypothetical_state["W_in_01"] = state_W_in_01
-            hypothetical_state["W_in_01_hp"] = state_W_in_01_hp
-            hypothetical_state["W_in_01_op"] = state_W_in_01_op
+            hypothetical_state["W_in"] = state_W_in
+            hypothetical_state["W_in_mc"] = state_W_in_mc
+            hypothetical_state["W_in_sd1"] = state_W_in_sd1
+            hypothetical_state["W_in_sd2"] = state_W_in_sd2
             hypothetical_state["W_out_01"] = state_W_out_01
             hypothetical_state["W_loss_01"] = state_W_loss_01
             hypothetical_state["W_balance_01"] = state_W_balance
 
             hypothetical_state["P_in"] = state_P_in
-            hypothetical_state["P_in_hp"] = state_P_in_hp
-            hypothetical_state["P_in_op"] = state_P_in_op
+            hypothetical_state["P_in_mc"] = state_P_in_mc
+            hypothetical_state["P_in_sd1"] = state_P_in_sd1
+            hypothetical_state["P_in_sd2"] = state_P_in_sd2
             hypothetical_state["P_out"] = state_P_out
             hypothetical_state["P_loss"] = state_P_loss
+
             hypothetical_state["heatup_pct"] = state_heatup_pct
             hypothetical_state["state_eta_pct"] = state_eta_pct
+            hypothetical_state["state_eta_mc_pct"] = state_eta_mc_pct
 
             hypothetical_state["opex_Eur"] = state_opex_Eur
             hypothetical_state["errorcode"] = state_errorcode
@@ -589,7 +606,7 @@ class EnergyConversion:
         """
         Performs step_action() until target "action" is reached.
         Condition for stationarity:
-        W_in_01 @ t-1 == W_in_01 @ t
+        W_in @ t-1 == W_in @ t
         P_out @ t-1 == P_out @ t
 
         Parameters
@@ -606,10 +623,10 @@ class EnergyConversion:
 
         cond = False
         while not ((P_out_pct_target == P_out_pct) and cond) and (ct_iteration <= 100):
-            W_in_0 = self.state.W_in_01
+            W_in_0 = self.state.W_in
             self.step_action(action)
             P_out_pct = self.state.P_out / self.par.P_out_rated * 100
-            W_in_1 = self.state.W_in_01
+            W_in_1 = self.state.W_in
             if W_in_0 == W_in_1:
                 cond = True
             ct_iteration += 1

@@ -10,6 +10,7 @@ from src.energysys_components.energy_conversion_classes import EConversionParams
 # Example Definition
 Cracker_fast = EConversionParams(P_out_rated=2000,
                                  P_out_min_pct=15,
+                                 eta_mc_pct=[[0, 100], [100 * 0.178 * 33.3 / 5.2, 100 * 0.178 * 33.3 / 5.2]],
                                  eta_pct=[
                                      [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85,
                                       90, 95, 100, 105, 110, 115, 120],
@@ -17,10 +18,11 @@ Cracker_fast = EConversionParams(P_out_rated=2000,
                                       54.74, 53.93, 53.06, 52.14,
                                       51.18, 50.18, 49.16, 48.12, 47.07, 46.01, 44.94, 43.88,
                                       42.82]],
+                                 split_P_sd=[0.97, 0.03],
                                  p_change_pos=5,
                                  p_change_neg=5,
                                  t_preparation=30,
-                                 W_preparation=250,
+                                 W_preparation=150,
                                  t_cooldown=75,
                                  spec_invest_cost=100,
                                  spec_volume=0.0017,
@@ -39,11 +41,12 @@ if __name__ == "__main__":
     df1.loc[0] = vars(EConversionState())
 
     # Run different stationary cases for target output load
-    targets = [0,
-               0.5 * Cracker_fast.P_out_min_pct / 100,
-               Cracker_fast.P_out_min_pct / 100,
-               0.5,
-               1]
+    targets = [#0,
+               #0.5 * Cracker_fast.P_out_min_pct / 100,
+               #Cracker_fast.P_out_min_pct / 100,
+               #0.5,
+               1
+               ]
 
     # number of time steps
     ts = 180
