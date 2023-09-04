@@ -35,13 +35,11 @@ class EnergyStorage:
     def __init__(self,
                  stor_par: StorageParams,
                  stor_state: StorageState,
-                 ts=15,
-                 debug: bool = False):
+                 ts=15):
         """
         :param stor_par: StorageParams object
         :param stor_state: StorageState object
         :param ts: timestep [min]
-        :param debug: bool flag, not implemented yet
         """
 
         self.par = stor_par
