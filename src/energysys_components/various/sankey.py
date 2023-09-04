@@ -116,7 +116,7 @@ if __name__ == "__main__":
     data = pd.Series(data=d, index=['P_in_mc', 'P_in_sd1', 'P_in_sd2', "P_out", "P_loss"])
 
     # Create plotly formatted input
-    data_node, data_link = sankey_input_single(data,comptype="Cracker")
+    data_node, data_link = sankey_input_single(data, comptype="Cracker")
 
     fig = go.Figure(data=[go.Sankey(
         valueformat=".0f",
