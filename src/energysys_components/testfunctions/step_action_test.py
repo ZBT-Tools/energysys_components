@@ -5,28 +5,11 @@ Simple EnergyConversion()-Tests
 import pandas as pd
 import plotly.graph_objects as go
 import copy
-from src.energysys_components.energy_conversion_classes import EConversionParams, EConversionState, EnergyConversion
+from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
+from src.energysys_components.component_definition import PEM, Cracker
 
 # Example Definition
-Cracker_fast = EConversionParams(P_out_rated=2000,
-                                 P_out_min_pct=15,
-                                 eta_pct=[
-                                     [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85,
-                                      90, 95, 100, 105, 110, 115, 120],
-                                     [55, 56.43, 57.1, 57.37, 57.33, 57.08, 56.67, 56.12, 55.48,
-                                      54.74, 53.93, 53.06, 52.14,
-                                      51.18, 50.18, 49.16, 48.12, 47.07, 46.01, 44.94, 43.88,
-                                      42.82]],
-                                 p_change_pos=5,
-                                 p_change_neg=5,
-                                 t_preparation=30,
-                                 W_preparation=250,
-                                 t_cooldown=75,
-                                 spec_invest_cost=100,
-                                 spec_volume=0.0017,
-                                 spec_mass=1,
-                                 norm_limits=[0, 1],
-                                 control_type_target=True)
+component = Cracker
 
 off_state = EConversionState()
 full_load_state = EConversionState(P_in=2000,
@@ -40,17 +23,18 @@ if __name__ == "__main__":
 
     # Run different stationary cases for target output load
     targets = [0,
-               0.5 * Cracker_fast.P_out_min_pct / 100,
-               Cracker_fast.P_out_min_pct / 100,
+               0.5 * component.P_out_min_pct / 100,
+               component.P_out_min_pct / 100,
                0.5,
-               1]
+               1
+               ]
 
     # number of time steps
     ts = 180
 
     for target in targets:
         # Initialization of component
-        C1 = EnergyConversion(Cracker_fast, copy.deepcopy(off_state), ts=1)
+        C1 = EnergyConversion(component, copy.deepcopy(off_state), ts=1)
         for t in range(ts):
             print(t)
             if t <= 90:
