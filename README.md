@@ -3,19 +3,7 @@
 ## Description
 Energy conversion component class with quasi-static state change methods.
 
-Energy conversion component object described by (dataclass EConversionParams):
-
-![image](https://github.com/fkuschel/energysys_components/assets/94350939/f3fd6bcb-c6d1-4e61-bbc8-6f2dfcd93c14)
-
-+ Heatup/Startup Energy [kWh]
- + Cool down time [min]
-
-Energy conversion component object state described by (dataclass EConversionState):
-![image](https://github.com/fkuschel/energysys_components/assets/94350939/41fc19ab-0390-4014-99ab-13dce38f4a63)
-
-
-## Example 
-![image](https://github.com/fkuschel/energysys_components/assets/94350939/8c119d76-6278-4d41-9adb-fa35a3c4ca2a)
+EnergyConversion-Objects are initialized with EConversionParams-Objects (DataClass):
 
 ```math
 \begin{align*}
@@ -41,3 +29,40 @@ Energy conversion component object state described by (dataclass EConversionStat
 &\text{Weight} &  &t_{mass}  & &[kg/kW] \\
 \end{align*}
 ```
+
+Energy conversion component object state described EConversionState-Object (DataClass):
+
+```math
+\begin{align*}
+&\textbf{Combined Input} \\
+&\text{Combined input energy} &  &W_{in}  & &[kWh] \\
+&\text{Combined input power} &  &P_{in}  & &[kW] \\
+&\textbf{Main Conversion Path Input} \\
+&\text{Main conversion input energy} &  &W_{in,mc}  & &[kWh] \\
+&\text{Main conversion input power} &  &P_{in,mc}  & &[kW] \\
+&\textbf{Secondary 1 Input} \\
+&\text{Secondary 1 input energy} &  &W_{in,sd1}  & &[kWh] \\
+&\text{Secondary 1 input power} &  &P_{in,sd1}  & &[kW] \\
+&\textbf{Secondary 2 Input} \\
+&\text{Secondary 2 input energy} &  &W_{in,sd2}  & &[kWh] \\
+&\text{Secondary 2 input power} &  &P_{in,sd2}  & &[kW] \\
+&\textbf{Combined Output} \\
+&\text{Combined output energy} &  &W_{out}  & &[kWh] \\
+&\text{Combined output power} &  &P_{out}  & &[kW] \\
+&\textbf{Loss} \\
+&\text{Loss energy} &  &W_{loss}  & &[kWh] \\
+&\text{Loss power} &  &P_{loss}  & &[kW] \\
+&\textbf{Heatup} \\
+&\text{Heatup state} &  &HU  & &[\%] \\
+&\textbf{Efficiencies} \\
+&\text{Overall efficiency} &  &\eta  & &[\%] \\
+&\text{Main conversion efficiency} &  &\eta_{mc}  & &[\%] \\
+&\textbf{Techno-economic} \\
+&\text{Opex} &  &opex  & &[\euro{}] \\
+\end{align*}
+```
+
+
+## Example 
+![image](https://github.com/fkuschel/energysys_components/assets/94350939/8c119d76-6278-4d41-9adb-fa35a3c4ca2a)
+
