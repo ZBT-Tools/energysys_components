@@ -202,7 +202,7 @@ class EConversionState:
     opex_Eur: float = 0  # [€]
 
     # Convergence
-    W_balance_01: float = 0  # [kWh]
+    W_balance: float = 0  # [kWh]
 
     # Following are not really state variables, beside it is dynamically increased optimization goal
     # capex_Eur: float = 0  # [€]
@@ -587,7 +587,7 @@ class EnergyConversion:
             self.state.eta_pct = state_eta_pct
             self.state.eta_mc_pct = state_eta_mc_pct
 
-            self.state.W_balance_01 = state_W_balance
+            self.state.W_balance = state_W_balance
 
             self.state.opex_Eur = state_opex_Eur
             self.state.errorcode = state_errorcode
@@ -602,7 +602,7 @@ class EnergyConversion:
             hypothetical_state["W_in_sd2"] = state_W_in_sd2
             hypothetical_state["W_out"] = state_W_out
             hypothetical_state["W_loss"] = state_W_loss
-            hypothetical_state["W_balance_01"] = state_W_balance
+            hypothetical_state["W_balance"] = state_W_balance
 
             hypothetical_state["P_in"] = state_P_in
             hypothetical_state["P_in_mc"] = state_P_in_mc
