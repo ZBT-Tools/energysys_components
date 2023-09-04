@@ -11,7 +11,7 @@ class StorageParams:
     Definition of energy storage component
     """
     efficiency_perc: float  # Const. or output dependend efficiency [% Efficiency],
-                            # or  [[load [%]],[efficiency [%]]]
+    # or  [[load [%]],[efficiency [%]]]
     max_charge: float  # E_Charge / E_Capacity / Time] [ 1/min]
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]

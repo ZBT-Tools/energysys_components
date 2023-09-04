@@ -441,9 +441,6 @@ class EnergyConversion:
             # If required calculate operating portion of input energy
             if self.state.heatup_pct == 100:
                 # Overall...
-                eta_pct_01 = (self.state.eta_pct +
-                              self.par.eta_pct_ip(self.par.P_out_min_pct).item(0)) / 2
-
                 W_in_op = ((self.state.P_in + self.par.P_in_min) /
                            2 * (load_operation_time / 60))
 
@@ -460,7 +457,6 @@ class EnergyConversion:
                         load_operation_time / 60)
                 W_loss_op = W_in_op - W_out
             else:
-                # W_in_op = 0
                 W_in_mc_op = 0
                 W_in_sd1_op = 0
                 W_in_sd2_op = 0
@@ -527,7 +523,6 @@ class EnergyConversion:
                 W_in_sd2_hp = self.par.split_P_sd2 * W_in_hp
 
             else:
-                # W_in_hp = 0
                 W_loss_hp = 0
                 W_in_sd1_hp = 0
                 W_in_sd2_hp = 0

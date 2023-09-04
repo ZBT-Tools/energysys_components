@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class ECarrier:
     """
+    # ToDO: Merge with control
     """
     name: str
     color: str
