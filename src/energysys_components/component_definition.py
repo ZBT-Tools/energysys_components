@@ -8,7 +8,7 @@ from energysys_components.energy_conversion import EConversionParams
 Cracker = EConversionParams(
     # Startup
     t_preparation=30,  # Time until system is available [Minutes] ("idle")
-    W_preparation=200,  # Preparation Energy [kWh] (from cold to idle)
+    E_preparation=200,  # Preparation Energy [kWh] (from cold to idle)
     eta_preparation=50,  # [%] For calculation of losses below operation
     # Load Operation
     P_out_min_pct=15,  # Minimum operating load [% Load]
@@ -42,7 +42,7 @@ Cracker = EConversionParams(
 PEM = EConversionParams(
     # Startup
     t_preparation=5,  # Time until system is available [Minutes] ("idle")
-    W_preparation=20,  # Preparation Energy [kWh] (from cold to idle)
+    E_preparation=20,  # Preparation Energy [kWh] (from cold to idle)
     eta_preparation=50,  # [%] For calculation of losses below operation
     # Load Operation
     P_out_min_pct=15,  # Minimum operating load [% Load]

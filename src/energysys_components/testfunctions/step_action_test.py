@@ -9,7 +9,8 @@ from src.energysys_components.energy_conversion import EConversionState, EnergyC
 from src.energysys_components.component_definition import PEM, Cracker
 
 # Example Definition
-component = Cracker
+component = PEM
+# component = Cracker
 
 off_state = EConversionState()
 full_load_state = EConversionState(P_in=2000,

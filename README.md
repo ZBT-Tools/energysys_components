@@ -9,7 +9,7 @@ EnergyConversion-Objects are initialized with EConversionParams-Objects (DataCla
 \begin{align*}
 &\textbf{Startup / Heatup definitions} \\
 &\text{Startup preparation time} &  &t_{preparation}  & &[minutes] \\
-&\text{Startup energy} &  &W_{preparation}  & &[kWh] \\
+&\text{Startup energy} &  &E_{preparation}  & &[kWh] \\
 &\text{Startup efficiency} &  &\eta_{preparation}  & &[kWh] \\
 &\textbf{Load operation definitions} \\
 &\text{Minimum Output Power} &  &P_{out,min}  & &[\%] \\
@@ -35,22 +35,22 @@ Energy conversion component object state described EConversionState-Object (Data
 ```math
 \begin{align*}
 &\textbf{Combined Input} \\
-&\text{Combined input energy} &  &W_{in}  & &[kWh] \\
+&\text{Combined input energy} &  &E_{in}  & &[kWh] \\
 &\text{Combined input power} &  &P_{in}  & &[kW] \\
 &\textbf{Main Conversion Path Input} \\
-&\text{Main conversion input energy} &  &W_{in,mc}  & &[kWh] \\
+&\text{Main conversion input energy} &  &E_{in,mc}  & &[kWh] \\
 &\text{Main conversion input power} &  &P_{in,mc}  & &[kW] \\
 &\textbf{Secondary 1 Input} \\
-&\text{Secondary 1 input energy} &  &W_{in,sd1}  & &[kWh] \\
+&\text{Secondary 1 input energy} &  &E_{in,sd1}  & &[kWh] \\
 &\text{Secondary 1 input power} &  &P_{in,sd1}  & &[kW] \\
 &\textbf{Secondary 2 Input} \\
-&\text{Secondary 2 input energy} &  &W_{in,sd2}  & &[kWh] \\
+&\text{Secondary 2 input energy} &  &E_{in,sd2}  & &[kWh] \\
 &\text{Secondary 2 input power} &  &P_{in,sd2}  & &[kW] \\
 &\textbf{Combined Output} \\
-&\text{Combined output energy} &  &W_{out}  & &[kWh] \\
+&\text{Combined output energy} &  &E_{out}  & &[kWh] \\
 &\text{Combined output power} &  &P_{out}  & &[kW] \\
 &\textbf{Loss} \\
-&\text{Loss energy} &  &W_{loss}  & &[kWh] \\
+&\text{Loss energy} &  &E_{loss}  & &[kWh] \\
 &\text{Loss power} &  &P_{loss}  & &[kW] \\
 &\textbf{Heatup} \\
 &\text{Heatup state} &  &HU  & &[\%] \\
