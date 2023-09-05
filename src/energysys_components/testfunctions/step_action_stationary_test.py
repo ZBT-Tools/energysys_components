@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 import numpy as np
-from src.energysys_components.energy_conversion import EConversionParams,  EConversionState, EnergyConversion
+from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
 from src.energysys_components.component_definition import PEM, Cracker
 
 # Select component
