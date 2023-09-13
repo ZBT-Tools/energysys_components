@@ -20,7 +20,7 @@ Cracker = EConversionParams(
     # Overall component efficiency
     eta_pct=[[15, 100], [75, 80]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[0, 100], [0.8 * 100 * 0.178 * 33.3 / 5.2, 0.8 * 100 * 0.178 * 33.3 / 5.2]],  # load
+    eta_mc_pct=[[15, 100], [0.8 * 100 * 0.178 * 33.3 / 5.2, 0.8 * 100 * 0.178 * 33.3 / 5.2]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
@@ -45,7 +45,7 @@ PEM = EConversionParams(
     E_preparation=20,  # Preparation Energy [kWh] (from cold to idle)
     eta_preparation=50,  # [%] For calculation of losses below operation
     # Load Operation
-    P_out_min_pct=15,  # Minimum operating load [% Load]
+    P_out_min_pct=5,  # Minimum operating load [% Load]
     P_out_rated=2000,  # Rated Load [kW]
 
     p_change_pos=20,  # [% output load/min]
@@ -73,6 +73,77 @@ PEM = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0, 1],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+
+    # Techno-economic
+    spec_invest_cost=200,  # [€/kW]
+    spec_volume=0.005,  # [m^^3/kW]
+    spec_mass=1,  # [kg/kW]
+
+
+    # Control Settins
+    control_type_target=True,  # If true, input is load target
+    norm_limits=[0, 1])
+
+
+Purification = EConversionParams(
+    # Startup
+    t_preparation=10,  # Time until system is available [Minutes] ("idle")
+    E_preparation=10,  # Preparation Energy [kWh] (from cold to idle)
+    eta_preparation=50,  # [%] For calculation of losses below operation
+    # Load Operation
+    P_out_min_pct=10,  # Minimum operating load [% Load]
+    P_out_rated=2000,  # Rated Load [kW]
+
+    p_change_pos=5,  # [% output load/min]
+    p_change_neg=5,  # [% output load/min]
+
+    # Overall component efficiency
+    eta_pct=[[15, 100], [90,90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    # Main conversion path efficiency
+    eta_mc_pct=[[15, 100], [90,90]],  # load
+    # dependend efficiency  [[load [%]],[efficiency [%]]]
+
+    # Shutdown
+    t_cooldown=10,  # Time until system cooled down [Minutes] ("idle to cool")
+
+    # Secondary energy ratios
+    # 1: input flow, 2: electric
+    split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+
+    # Techno-economic
+    spec_invest_cost=200,  # [€/kW]
+    spec_volume=0.005,  # [m^^3/kW]
+    spec_mass=1,  # [kg/kW]
+
+    # Control Settins
+    control_type_target=True,  # If true, input is load target
+    norm_limits=[0, 1])
+
+
+SOFC = EConversionParams(
+    # Startup
+    t_preparation=10,  # Time until system is available [Minutes] ("idle")
+    E_preparation=10,  # Preparation Energy [kWh] (from cold to idle)
+    eta_preparation=50,  # [%] For calculation of losses below operation
+    # Load Operation
+    P_out_min_pct=15,  # Minimum operating load [% Load]
+    P_out_rated=2000,  # Rated Load [kW]
+
+    p_change_pos=5,  # [% output load/min]
+    p_change_neg=5,  # [% output load/min]
+
+    # Overall component efficiency
+    eta_pct=[[15, 100], [90,90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    # Main conversion path efficiency
+    eta_mc_pct=[[15, 100], [90,90]],  # load
+    # dependend efficiency  [[load [%]],[efficiency [%]]]
+
+    # Shutdown
+    t_cooldown=10,  # Time until system cooled down [Minutes] ("idle to cool")
+
+    # Secondary energy ratios
+    # 1: input flow, 2: electric
+    split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]

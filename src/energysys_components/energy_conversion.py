@@ -685,7 +685,41 @@ class EnergyConversion:
             # root = fsolve(func, [0], full_output=True)
             # val = root[0][0]
             # conv = root[2]
-            P_out = input_load * self.par.eta_mc_in_kW_ip(input_load)
+            P_out = input_load * self.par.eta_mc_in_kW_ip(input_load) / 100
+
+            return P_out / self.par.P_out_rated
+
+    def action_for_E_in_mc_target(self, input_load: float) -> float:
+        """
+        Calculation of action (= load target [0,1]) for step_action()-Method equivalent to
+        given main conversion(!) input energy requirement [kWh]
+
+
+
+        Only usable for load operation!
+        Returns error if input_load < minimum input load.
+
+        Solves:
+            Find P_out for given E_in
+
+        :param input_load: float, Input load [kW]
+
+        """
+
+        def func(x):
+
+            return input_load / self.par.p_out * self.eta(x * 100) / 100 - x
+
+        # Check if input_load is above required minimum
+        if input_load < self.par.P_in_mc_min:
+            raise Exception("Input load too low for action")
+        elif input_load > self.par.P_in_mc_max:
+            raise Exception("Input load too high for action")
+        else:
+            # root = fsolve(func, [0], full_output=True)
+            # val = root[0][0]
+            # conv = root[2]
+            P_out = input_load * self.par.eta_mc_in_kW_ip(input_load) / 100
 
             return P_out / self.par.P_out_rated
 
