@@ -405,14 +405,22 @@ class EnergyConversion:
             elif P_out_pct - self.par.p_change_sd_pct * self.ts < 0:
                 # In low heatup state, compesation is neglected, which is
                 # sufficient for rule based control (as this is no reasonable target state),
-                # however needs to be covered ToDo
+                # however needs to be covered for advanced rules ToDo
                 E_compens = 0
                 E_compens_loss = 0
-            else:
+
+            elif P_out_pct == P_out_0_pct:
                 # calculate compensation energy and loss of it (just for holding the state)
                 E_compens = (self.par.p_change_sd_pct * self.ts / self.par.P_out_min_pct) \
                             * self.par.E_preparation
                 E_compens_loss = E_compens
+
+            else:
+                # For all other startup targets, compesation is neglected, which is
+                # sufficient for rule based control (as this is no reasonable target state),
+                # however needs to be covered for advanced rules ToDo
+                E_compens = 0
+                E_compens_loss = 0
 
             # Energy amount for 'changing heatup state'
             E_startup = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation)
