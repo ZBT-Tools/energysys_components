@@ -104,7 +104,7 @@ Purification = EConversionParams(
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
-    t_cooldown=10,  # Time until system cooled down [Minutes] ("idle to cool")
+    t_cooldown=30,  # Time until system cooled down [Minutes] ("idle to cool")
 
     # Secondary energy ratios
     # 1: input flow, 2: electric

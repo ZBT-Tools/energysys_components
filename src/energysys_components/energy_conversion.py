@@ -538,7 +538,7 @@ class EnergyConversion:
             # Operating Phase
             E_in_op = (max(self.state.P_in, self.par.P_in_min) + P_in) / 2 * (
                     load_operation_time / 60)
-            E_in_mc_op = ((self.state.P_in_mc + P_in_mc) / 2 * (load_operation_time / 60))
+            E_in_mc_op = (max(self.state.P_in_mc,self.par.P_in_mc_min) + P_in_mc) / 2 * (load_operation_time / 60)
             E_in_sd_op = E_in_op - E_in_mc_op
             E_in_sd1_op = self.par.split_P_sd1 * E_in_sd_op
             E_in_sd2_op = self.par.split_P_sd2 * E_in_sd_op
