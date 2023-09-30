@@ -280,11 +280,11 @@ class EnergyConversion:
         #
 
         if self.state.heatup_pct < 100:
-            P_out_0_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 5)
-            P_out_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 5)
+            P_out_0_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 6)
+            P_out_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 6)
         else:
-            P_out_0_pct = round(self.state.P_out / self.par.P_out_rated, 5) * 100
-            P_out_pct = round(self.state.P_out / self.par.P_out_rated, 5) * 100
+            P_out_0_pct = round(self.state.P_out / self.par.P_out_rated, 6) * 100
+            P_out_pct = round(self.state.P_out / self.par.P_out_rated, 6) * 100
 
         heatup_pct = self.state.heatup_pct
 

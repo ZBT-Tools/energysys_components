@@ -6,10 +6,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
-from src.energysys_components.component_definition import PEM, Cracker
+from src.energysys_components.component_definition import PEM, Cracker,Purification
 
 # Example Definition
-component = PEM
+component = Purification
 # component = Cracker
 
 off_state = EConversionState()
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     for target in targets:
         # Initialization of component
-        C1 = EnergyConversion(component, copy.deepcopy(off_state), ts=0.1)
+        C1 = EnergyConversion(component, copy.deepcopy(off_state), ts=1)
         for t in range(ts):
             print(t)
             if t <= 90:
