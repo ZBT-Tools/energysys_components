@@ -3,9 +3,18 @@ Component definition examples
 """
 
 from energysys_components.energy_conversion import EConversionParams
+from energysys_components.energy_carrier import NH3, H2, Loss, Electr
 
 # Ammonia Cracker
 Cracker = EConversionParams(
+    name="Example Ammonia Cracker",
+
+    # Energy Carrier Definitions
+    E_in_mc_type=NH3,
+    E_in_sd1_type=NH3,
+    E_in_sd2_type=Electr,
+    E_out_type=H2,
+
     # Startup
     t_preparation=30,  # Time until system is available [Minutes] ("idle")
     E_preparation=200,  # Preparation Energy [kWh] (from cold to idle)
@@ -20,7 +29,8 @@ Cracker = EConversionParams(
     # Overall component efficiency
     eta_pct=[[15, 100], [75, 80]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [0.8 * 100 * 0.178 * 33.3 / 5.2, 0.8 * 100 * 0.178 * 33.3 / 5.2]],  # load
+    eta_mc_pct=[[15, 100], [0.8 * 100 * 0.178 * 33.3 / 5.2, 0.8 * 100 * 0.178 * 33.3 / 5.2]],
+    # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
@@ -40,12 +50,20 @@ Cracker = EConversionParams(
     norm_limits=[0, 1])
 
 PEM = EConversionParams(
+    name="Example PEM Fuel Cell",
+
+    # Energy Carrier Definitions
+    E_in_mc_type=H2,
+    E_in_sd1_type=H2,
+    E_in_sd2_type=Electr,
+    E_out_type=Electr,
+
     # Startup
     t_preparation=5,  # Time until system is available [Minutes] ("idle")
     E_preparation=20,  # Preparation Energy [kWh] (from cold to idle)
     eta_preparation=50,  # [%] For calculation of losses below operation
     # Load Operation
-    P_out_min_pct=5,  # Minimum operating load [% Load]
+    P_out_min_pct=15,  # Minimum operating load [% Load]
     P_out_rated=2000,  # Rated Load [kW]
 
     p_change_pos=20,  # [% output load/min]
@@ -79,13 +97,19 @@ PEM = EConversionParams(
     spec_volume=0.005,  # [m^^3/kW]
     spec_mass=1,  # [kg/kW]
 
-
     # Control Settins
     control_type_target=True,  # If true, input is load target
     norm_limits=[0, 1])
 
-
 Purification = EConversionParams(
+    name="Example Hydrogen Purification",
+
+    # Energy Carrier Definitions
+    E_in_mc_type=H2,
+    E_in_sd1_type=H2,
+    E_in_sd2_type=Electr,
+    E_out_type=H2,
+
     # Startup
     t_preparation=10,  # Time until system is available [Minutes] ("idle")
     E_preparation=10,  # Preparation Energy [kWh] (from cold to idle)
@@ -98,9 +122,9 @@ Purification = EConversionParams(
     p_change_neg=5,  # [% output load/min]
 
     # Overall component efficiency
-    eta_pct=[[15, 100], [90,90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    eta_pct=[[15, 100], [90, 90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [90,90]],  # load
+    eta_mc_pct=[[15, 100], [90, 90]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
@@ -119,8 +143,15 @@ Purification = EConversionParams(
     control_type_target=True,  # If true, input is load target
     norm_limits=[0, 1])
 
-
 SOFC = EConversionParams(
+    name="Example Solid Oxide Fuel Cell",
+
+    # Energy Carrier Definitions
+    E_in_mc_type=NH3,
+    E_in_sd1_type=NH3,
+    E_in_sd2_type=Electr,
+    E_out_type=Electr,
+
     # Startup
     t_preparation=10,  # Time until system is available [Minutes] ("idle")
     E_preparation=10,  # Preparation Energy [kWh] (from cold to idle)
@@ -133,9 +164,9 @@ SOFC = EConversionParams(
     p_change_neg=5,  # [% output load/min]
 
     # Overall component efficiency
-    eta_pct=[[15, 100], [90,90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    eta_pct=[[15, 100], [90, 90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [90,90]],  # load
+    eta_mc_pct=[[15, 100], [90, 90]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
