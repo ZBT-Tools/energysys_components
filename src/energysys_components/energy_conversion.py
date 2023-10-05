@@ -4,6 +4,7 @@ Main conversion class
 from dataclasses import dataclass, field
 from scipy import interpolate
 from energysys_components.various.normalization import denorm
+from energysys_components.energy_carrier import ECarrier
 import copy
 
 
@@ -12,6 +13,13 @@ class EConversionParams:
     """
     Definition of energy conversion component
     """
+    name: str
+
+    # Definition of energy carriers
+    E_in_mc_type: ECarrier
+    E_in_sd1_type: ECarrier
+    E_in_sd2_type: ECarrier
+    E_out_type: ECarrier
 
     # Startup
     t_preparation: float  # Time until system is available [Minutes] ("idle")
@@ -398,7 +406,7 @@ class EnergyConversion:
             # Energy amount for 'holding prior idle state (loss compensation)', if required
 
             if P_out_pct == P_out_0_pct + self.par.p_change_st_pct * self.ts:
-                # Loss during pure startup is expected to be inlcuded in given E_preparation
+                # Loss during pure startup is expected to be included in given E_preparation
                 # and therefore no additional compensation is requred
                 E_compens = 0
                 E_compens_loss = 0
