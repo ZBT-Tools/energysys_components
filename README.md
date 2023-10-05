@@ -62,7 +62,12 @@ Energy conversion component object state described EConversionState-Object (Data
 \end{align*}
 ```
 
+![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/42a7fe7a-4aef-4df6-8b4d-f8af7aa51c4f)
+
+
 
 ## Example 
 
 ![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/4dac6e90-344b-4f3d-aa67-7cf2a9963733)
+
+![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/403d5eee-5da4-4c14-bd27-46b8c0b7b5de)
