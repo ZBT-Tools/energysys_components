@@ -12,7 +12,8 @@ class StorageParams:
     """
     efficiency_perc: float  # Const. or output dependend efficiency [% Efficiency],
     # or  [[load [%]],[efficiency [%]]]
-    max_charge: float  # E_Charge / E_Capacity / Time] [ 1/min]
+    C_rate_charge: float  # This is the charge per hour rate –
+    # one divided by the number of hours to charge the battery fully.
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
     spec_mass: float  # [kg/kWh]

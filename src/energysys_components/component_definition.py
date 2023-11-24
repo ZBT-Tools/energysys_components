@@ -122,9 +122,9 @@ Purification = EConversionParams(
     p_change_neg=5,  # [% output load/min]
 
     # Overall component efficiency
-    eta_pct=[[15, 100], [90, 90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    eta_pct=[[15, 100], [90, 91]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [90, 90]],  # load
+    eta_mc_pct=[[15, 100], [90, 91]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown
@@ -164,9 +164,9 @@ SOFC = EConversionParams(
     p_change_neg=5,  # [% output load/min]
 
     # Overall component efficiency
-    eta_pct=[[15, 100], [90, 90]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    eta_pct=[[15, 100], [90, 91]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [90, 90]],  # load
+    eta_mc_pct=[[15, 100], [90, 91]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
 
     # Shutdown

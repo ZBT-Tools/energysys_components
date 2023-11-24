@@ -14,7 +14,12 @@ class ECarrier:
     color: str
 
 
-NH3 = ECarrier(name="Ammonia", color="#19a844",
+NH3 = ECarrier(
+    # https://www.peacesoftware.de/einigewerte/nh3.html
+    # Agg. Gas, p 1bar, T 20degC, 1536 	[kJ/kg]
+    # Agg. Liq, p 1bar, T -33degC, 46 [kJ/kg]
+
+    name="Ammonia", color="#19a844",
                hu_kWh_kg=5.2,
                density_liquid_cool=682.78,
                vol_energy_density_kWh_m3=5.2 * 682.78)
@@ -31,4 +36,10 @@ Electr = ECarrier(name="Electricity", color="#ccb80e",
 Loss = ECarrier(name="Loss", color="#cc470e",
                 hu_kWh_kg=0,
                 density_liquid_cool=0,  # -253,15°C
+                vol_energy_density_kWh_m3=0)
+Seawater = ECarrier(
+                # cp: 	4,18 kJ/kg/K
+                name="Seawater", color="#0e8acc",
+                hu_kWh_kg=0,
+                density_liquid_cool=999,  # -253,15°C
                 vol_energy_density_kWh_m3=0)
