@@ -5,15 +5,17 @@ from dataclasses import dataclass
 import copy
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class StorageParams:
     """
     Definition of energy storage component
     """
-    efficiency_perc: float  # Const. or output dependend efficiency [% Efficiency],
+    E_cap: float  # Capacity of storage component [kWh]
+    eta: float  # Const. or output dependend efficiency [0-1],
     # or  [[load [%]],[efficiency [%]]]
     C_rate_charge: float  # This is the charge per hour rate –
     # one divided by the number of hours to charge the battery fully.
+
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
     spec_mass: float  # [kg/kWh]
@@ -24,6 +26,8 @@ class StorageState:
     """
     To be implemented
     """
+    SoC: float  # State of charge 0-1, 0: empty, 1: full
+    E_cap_incr: float  # Required capacity increase during run
 
     errorcode: int = 0  # for passing different errors
 
@@ -49,7 +53,36 @@ class EnergyStorage:
         self.state_initial = cop
         self.state = stor_state
 
-    def step_action(self, action: float, hypothetical_step=False):
+    def step_action(self, E_req: float):
+        """
+        Update of storage component
+
+        :param E_req: Energy requirement [kWh], <0 for discharge, >0 for charge
+        :return:
+        """
+        # Calculation of updated SoC
+        # -----------------------------
+        E_SoC_0 = self.state.SoC * self.par.E_cap  # [kWh]
+
+        if E_req <= 0:  # -> bat. discharge
+            E_SoC_1 = E_SoC_0 - E_req
+        else:  # ... charge with efficiency
+            E_SoC_1 = E_SoC_0 + self.par.eta * E_req
+
+        # If required, update capacity 'on the fly' ....
+        if E_SoC_1 < 0:  # ... if SoC < 0
+            adder = -1 * E_SoC_1
+            self.par.E_cap += adder
+            self.state.E_cap_incr += adder
+            E_SoC_1 = 0
+
+        elif E_SoC_1 > self.par.E_cap:  # ... if SoC > 1
+            adder = E_SoC_1 - self.par.E_cap
+            self.par.E_cap += adder
+            self.state.E_cap_incr += adder
+
+        self.state.SoC = E_SoC_1 / self.par.E_cap
+
         pass
 
     def reset(self):
