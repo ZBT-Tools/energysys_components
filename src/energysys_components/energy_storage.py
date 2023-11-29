@@ -11,10 +11,10 @@ class StorageParams:
     Definition of energy storage component
     """
     E_cap: float  # Capacity of storage component [kWh]
-    eta: float  # Const. or output dependend efficiency [0-1],
-    # or  [[load [%]],[efficiency [%]]]
+    eta: float  # Const. or output dependend efficiency [0-1]
     C_rate_charge: float  # This is the charge per hour rate –
     # one divided by the number of hours to charge the battery fully.
+    autoIncrease = True  # Allows component to increase capacity on the fly during calculation
 
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
@@ -26,8 +26,8 @@ class StorageState:
     """
     To be implemented
     """
-    SoC: float  # State of charge 0-1, 0: empty, 1: full
-    E_cap_incr: float  # Required capacity increase during run
+    SoC: float = 1  # State of charge 0-1, 0: empty, 1: full
+    E_cap_incr: float = 0  # Required capacity increase during run
 
     errorcode: int = 0  # for passing different errors
 
@@ -71,15 +71,23 @@ class EnergyStorage:
 
         # If required, update capacity 'on the fly' ....
         if E_SoC_1 < 0:  # ... if SoC < 0
-            adder = -1 * E_SoC_1
-            self.par.E_cap += adder
-            self.state.E_cap_incr += adder
-            E_SoC_1 = 0
+            if self.par.autoIncrease:
+                adder = -1 * E_SoC_1
+                self.par.E_cap += adder
+                self.state.E_cap_incr += adder
+                E_SoC_1 = 0
+            else:
+                raise Exception("Battery overflow")
 
         elif E_SoC_1 > self.par.E_cap:  # ... if SoC > 1
-            adder = E_SoC_1 - self.par.E_cap
-            self.par.E_cap += adder
-            self.state.E_cap_incr += adder
+            if self.par.autoIncrease:
+                adder = E_SoC_1 - self.par.E_cap
+                self.par.E_cap += adder
+                self.state.E_cap_incr += adder
+            else:
+                raise Exception("Battery overflow")
+        else:
+            pass
 
         self.state.SoC = E_SoC_1 / self.par.E_cap
 
