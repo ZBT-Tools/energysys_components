@@ -14,11 +14,11 @@ class StorageParams:
     eta: float  # Const. or output dependend efficiency [0-1]
     C_rate_charge: float  # This is the charge per hour rate –
     # one divided by the number of hours to charge the battery fully.
-    autoIncrease = True  # Allows component to increase capacity on the fly during calculation
 
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
     spec_mass: float  # [kg/kWh]
+    autoIncrease: bool = True  # Allows component to increase capacity on the fly during calculation
 
 
 @dataclass(frozen=False)
