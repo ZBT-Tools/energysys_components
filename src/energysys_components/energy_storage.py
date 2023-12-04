@@ -65,7 +65,7 @@ class EnergyStorage:
         E_SoC_0 = self.state.SoC * self.par.E_cap  # [kWh]
 
         if E_req <= 0:  # -> bat. discharge
-            E_SoC_1 = E_SoC_0 - E_req
+            E_SoC_1 = E_SoC_0 + E_req
         else:  # ... charge with efficiency
             E_SoC_1 = E_SoC_0 + self.par.eta * E_req
 
