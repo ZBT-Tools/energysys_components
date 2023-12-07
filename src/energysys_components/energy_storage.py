@@ -10,7 +10,7 @@ class StorageParams:
     """
     Definition of energy storage component
     """
-    E_cap: float  # Capacity of storage component [kWh]
+
     eta: float  # Const. or output dependend efficiency [0-1]
     C_rate_charge: float  # This is the charge per hour rate –
     # one divided by the number of hours to charge the battery fully.
@@ -18,6 +18,7 @@ class StorageParams:
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
     spec_mass: float  # [kg/kWh]
+    E_cap: float = 0  # Capacity of storage component [kWh]
     autoIncrease: bool = True  # Allows component to increase capacity on the fly during calculation
 
 
