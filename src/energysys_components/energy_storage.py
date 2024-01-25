@@ -41,7 +41,7 @@ class EnergyStorage:
     def __init__(self,
                  stor_par: StorageParams,
                  stor_state: StorageState,
-                 ts=15):
+                 ts):
         """
         :param stor_par: StorageParams object
         :param stor_state: StorageState object

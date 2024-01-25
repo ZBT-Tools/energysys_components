@@ -227,7 +227,7 @@ class EnergyConversion:
 
     def __init__(self, conv_par: EConversionParams,
                  conv_state: EConversionState,
-                 ts: int = 15,
+                 ts,
                  # debug: bool = False
                  ):
         """
