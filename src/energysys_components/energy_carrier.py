@@ -13,6 +13,14 @@ class ECarrier:
     vol_energy_density_kWh_m3: float  # Volumetric energy density in liquid state [kWh/m³]
     color: str
 
+    def tolist(self):
+        """
+        Required for encoding for plotly table function
+         [https://plotly.com/python/table/#basic-table]
+
+        :return:
+        """
+        return self.name
 
 NH3 = ECarrier(
     # https://www.peacesoftware.de/einigewerte/nh3.html
