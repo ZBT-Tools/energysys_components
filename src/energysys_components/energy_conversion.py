@@ -32,6 +32,9 @@ class EConversionParams:
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
 
+    E_loadchange: list  # load dependend additional required energy
+    # (example: SOFC stack temperature increase)  [[load [%]],[Energy [kWh]]]
+
     # Overall component efficiency
     eta_pct: list  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
@@ -153,6 +156,15 @@ class EConversionParams:
             fill_value=(list_eta_in_kW[0],
                         list_eta_in_kW[-1]))
 
+        # Load change energy interpolator Energy_state=f(Load [%])
+        # ---------------------------------------------------------
+        self.E_loadchange_ip = interpolate.interp1d(self.E_loadchange[0],
+                                                    self.E_loadchange[1],
+                                                    kind='linear',
+                                                    bounds_error=False,
+                                                    fill_value=(self.E_loadchange[1][0],
+                                                                self.E_loadchange[1][-1]))
+
         # Some characteristic loads for convenience:
         # https://stackoverflow.com/questions/2474015/
         # "Getting the index of the returned max or min item using max()/min() on a list"
@@ -212,7 +224,7 @@ class EConversionState:
     # Convergence
     E_balance: float = 0  # [kWh]
 
-    # Following are not really state variables, beside it is dynamically increased optimization goal
+    # Following are not really state variables, could be implemented here for optimization / ML
     # capex_Eur: float = 0  # [€]
     # volume: float = 0  # [m^^3]
     # weight: float = 0  # [kg]
@@ -228,7 +240,7 @@ class EnergyConversion:
     def __init__(self, conv_par: EConversionParams,
                  conv_state: EConversionState,
                  ts,
-                 # debug: bool = False
+                 # debug: bool = False (tbi)
                  ):
         """
         :param conv_par:    EConversionParams dataclass object
@@ -278,7 +290,7 @@ class EnergyConversion:
 
         """
 
-        # 1.) State calculations prior to action
+        # 1.) Additional state calculations prior to action
         # ---------------------------------------------------------
         # Info: Below minimum load corner point, real component output load is zero.
         #               However for calculation of changes in heatup or cooldown states it is
@@ -301,11 +313,9 @@ class EnergyConversion:
         error = 0  # Init error code
 
         if not self.par.control_type_target:
-            # No up-to-date implementation (used for inital RL tests)
-            load_operation_time = 0  # min
-            pass
+            raise Exception('No up-to-date implementation of this control type.')
 
-        else:  # --> Control type target
+        else:  # --> Control type: target
 
             # Limit input to valid action range
             # Idea: Warning could be implement
@@ -315,12 +325,12 @@ class EnergyConversion:
                 action = 0
 
             # Denormalize action [0,1] to load [%]
-            # Background: Simple way to use different types of normalization for Machine Learning
+            # Reason for implementation: Simple way to use different types of normalization for ML
             P_out_target_pct = denorm(action, {'n': [self.par.norm_limits[0],
                                                      self.par.norm_limits[1]],
                                                'r': [0, 100]})
 
-            # Update step, case distinction
+            # Calculate new load P
             # ---------------------------------------------------------
             # Different load ranges [%]...
             #   - [0,self.par.P_out_min_pct):   Startup/Shutdown area   [S]
@@ -340,17 +350,17 @@ class EnergyConversion:
                     heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
 
                 elif (P_out_target_pct >= self.par.P_out_min_pct) and \
-                        (P_out_pct < self.par.P_out_min_pct):  # --> [S->O]
+                        (P_out_pct < self.par.P_out_min_pct):  # --> [S->O (potentially)]
 
                     prep_delta_perc = (self.par.P_out_min_pct - P_out_pct)  # %pts to min. load
                     prep_time_min = prep_delta_perc / self.par.p_change_st_pct  # time to min. load
-                    if prep_time_min <= self.ts:  # --> operation mode reached
+                    if prep_time_min <= self.ts:  # --> "O" reached
                         P_out_pct = min(P_out_target_pct,
                                         self.par.P_out_min_pct + self.par.p_change_pos * (
                                                 self.ts - prep_time_min))
                         load_operation_time = self.ts - prep_time_min
                         heatup_pct = 100
-                    else:  # --> operation mode not reached
+                    else:  # --> "O" not reached
                         P_out_pct = P_out_pct + self.par.p_change_st_pct * self.ts
                         heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
 
@@ -368,7 +378,7 @@ class EnergyConversion:
                     load_operation_time = self.ts
 
                 elif (P_out_target_pct < self.par.P_out_min_pct) and \
-                        (P_out_pct >= self.par.P_out_min_pct):  # --> [O->S]
+                        (P_out_pct >= self.par.P_out_min_pct):  # --> [O->S(potentially)]
 
                     load_delta_perc = (P_out_pct - self.par.P_out_min_pct)  # %pts to min load
                     unload_time_min = load_delta_perc / self.par.p_change_neg  # time to min load
@@ -398,22 +408,24 @@ class EnergyConversion:
             eta_perc_1 = self.par.eta_pct_ip(P_out_pct).item(0)
             eta_mc_perc_1 = self.par.eta_mc_pct_ip(P_out_pct).item(0)
 
-        # 4.) Calculation of state variables (P,W,...)
+        # 4.) Energy Calculation
         # ---------------------------------------------------------
         # Case distinction between pure load operation, below-load-operation and combinations
-
-        if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):  # -> Startup or holding idle
+        if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):
+            # -> Startup or holding idle
             # Energy amount for 'holding prior idle state (loss compensation)', if required
 
             if P_out_pct == P_out_0_pct + self.par.p_change_st_pct * self.ts:
+                # -> Maximum start speed
                 # Loss during pure startup is expected to be included in given E_preparation
                 # and therefore no additional compensation is requred
                 E_compens = 0
                 E_compens_loss = 0
+
             elif P_out_pct - self.par.p_change_sd_pct * self.ts < 0:
                 # In low heatup state, compesation is neglected, which is
                 # sufficient for rule based control (as this is no reasonable target state),
-                # however needs to be covered for advanced rules ToDo
+                # however needs to be refined for advanced control ToDo
                 E_compens = 0
                 E_compens_loss = 0
 
@@ -426,12 +438,12 @@ class EnergyConversion:
             else:
                 # For all other startup targets, compesation is neglected, which is
                 # sufficient for rule based control (as this is no reasonable target state),
-                # however needs to be covered for advanced rules ToDo
+                # however needs to be refined for advanced control ToDo
                 E_compens = 0
                 E_compens_loss = 0
 
             # Energy amount for 'changing heatup state'
-            E_startup = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation)
+            E_startup = (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation
             E_startup_loss = (
                     (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_loss)
 
@@ -453,8 +465,9 @@ class EnergyConversion:
             state_E_out = 0
             state_P_out = 0
 
-        elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):  # Coasting down / Shutdown
-            # If required calculate operating portion of input energy
+        elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):
+            # --> Coasting down / Shutdown
+            # --> If required calculate operating portion of input energy
             if self.state.heatup_pct == 100:
                 # Overall...
                 E_in_op = ((self.state.P_in + self.par.P_in_min) /
@@ -487,7 +500,7 @@ class EnergyConversion:
             diff_cooldown_max_pct = min(self.par.p_change_sd_pct * coastdown_time,
                                         P_out_cooldownst_pct)
 
-            # If required calculate energy amount for coast down ( for superposed "heatup")
+            # If required calculate energy amount for coast down ( for superposed energy inp.)
             if P_out_pct > P_out_cooldownst_pct - diff_cooldown_max_pct:
                 diff_load_perc = P_out_pct - (P_out_cooldownst_pct - diff_cooldown_max_pct)
                 E_diff = diff_load_perc / self.par.P_out_min_pct * self.par.E_preparation
@@ -546,7 +559,8 @@ class EnergyConversion:
             # Operating Phase
             E_in_op = (max(self.state.P_in, self.par.P_in_min) + P_in) / 2 * (
                     load_operation_time / 60)
-            E_in_mc_op = (max(self.state.P_in_mc,self.par.P_in_mc_min) + P_in_mc) / 2 * (load_operation_time / 60)
+            E_in_mc_op = ((max(self.state.P_in_mc, self.par.P_in_mc_min) + P_in_mc) /
+                          2 * (load_operation_time / 60))
             E_in_sd_op = E_in_op - E_in_mc_op
             E_in_sd1_op = self.par.split_P_sd1 * E_in_sd_op
             E_in_sd2_op = self.par.split_P_sd2 * E_in_sd_op
