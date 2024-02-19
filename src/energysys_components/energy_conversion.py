@@ -226,8 +226,8 @@ class EConversionState:
 
     # Following are not really state variables, could be implemented here for optimization / ML
     # capex_Eur: float = 0  # [€]
-    # volume: float = 0  # [m^^3]
-    # weight: float = 0  # [kg]
+    # volume: float = 0     # [m^^3]
+    # weight: float = 0     # [kg]
 
     errorcode: int = 0  # not implemented yet
 
@@ -289,9 +289,10 @@ class EnergyConversion:
          6.) Update state variables
 
         """
+        error = 0  # Init error code
 
-        # 1.) Additional state calculations prior to action
-        # ---------------------------------------------------------
+        # 1.) State calculations prior to action
+        # ---------------------------------------
         # Info: Below minimum load corner point, real component output load is zero.
         #               However for calculation of changes in heatup or cooldown states it is
         #               used as an artificial variable (for simplicity) and is therefore calculated
@@ -301,17 +302,11 @@ class EnergyConversion:
 
         if self.state.heatup_pct < 100:
             P_out_0_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 6)
-            P_out_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 6)
         else:
             P_out_0_pct = round(self.state.P_out / self.par.P_out_rated, 6) * 100
-            P_out_pct = round(self.state.P_out / self.par.P_out_rated, 6) * 100
 
-        heatup_pct = self.state.heatup_pct
-
-        # 2.) Control action
+        # 2.) Application of control action
         # ---------------------------------------------------------
-        error = 0  # Init error code
-
         if not self.par.control_type_target:
             raise Exception('No up-to-date implementation of this control type.')
 
@@ -330,74 +325,9 @@ class EnergyConversion:
                                                      self.par.norm_limits[1]],
                                                'r': [0, 100]})
 
-            # Calculate new load P
-            # ---------------------------------------------------------
-            # Different load ranges [%]...
-            #   - [0,self.par.P_out_min_pct):   Startup/Shutdown area   [S]
-            #   - [self.par.P_out_min_pct,100]: Operation range         [O]
-            #
-            # results in 3 cases for load increase: [S->S, S->O, O->O],
-            # and 3 cases for load decrease:        [O->O, O->S, S->S].
-
-            # For later energy calculations....
-            load_operation_time = 0  # min
-
-            if P_out_pct <= P_out_target_pct:  # --> load holding & increase cases
-
-                if P_out_target_pct < self.par.P_out_min_pct:  # --> [S->S]
-                    P_out_pct = min(P_out_target_pct,
-                                    P_out_pct + self.par.p_change_st_pct * self.ts)
-                    heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
-
-                elif (P_out_target_pct >= self.par.P_out_min_pct) and \
-                        (P_out_pct < self.par.P_out_min_pct):  # --> [S->O (potentially)]
-
-                    prep_delta_perc = (self.par.P_out_min_pct - P_out_pct)  # %pts to min. load
-                    prep_time_min = prep_delta_perc / self.par.p_change_st_pct  # time to min. load
-                    if prep_time_min <= self.ts:  # --> "O" reached
-                        P_out_pct = min(P_out_target_pct,
-                                        self.par.P_out_min_pct + self.par.p_change_pos * (
-                                                self.ts - prep_time_min))
-                        load_operation_time = self.ts - prep_time_min
-                        heatup_pct = 100
-                    else:  # --> "O" not reached
-                        P_out_pct = P_out_pct + self.par.p_change_st_pct * self.ts
-                        heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
-
-                elif (P_out_target_pct >= self.par.P_out_min_pct) and \
-                        (P_out_pct >= self.par.P_out_min_pct):  # --> [O->O]
-
-                    P_out_pct = min(P_out_target_pct,
-                                    P_out_pct + self.par.p_change_pos * self.ts)
-                    load_operation_time = self.ts
-
-            elif P_out_pct > P_out_target_pct:  # --> load decrease cases
-                if P_out_target_pct >= self.par.P_out_min_pct:  # --> [O->O]
-                    P_out_pct = max(P_out_target_pct,
-                                    P_out_pct - self.par.p_change_neg * self.ts)
-                    load_operation_time = self.ts
-
-                elif (P_out_target_pct < self.par.P_out_min_pct) and \
-                        (P_out_pct >= self.par.P_out_min_pct):  # --> [O->S(potentially)]
-
-                    load_delta_perc = (P_out_pct - self.par.P_out_min_pct)  # %pts to min load
-                    unload_time_min = load_delta_perc / self.par.p_change_neg  # time to min load
-                    if unload_time_min < self.ts:  # --> shutdown mode reached
-                        P_out_pct = max(P_out_target_pct,
-                                        self.par.P_out_min_pct - self.par.p_change_sd_pct * (
-                                                self.ts - unload_time_min))
-                        heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
-                        load_operation_time = unload_time_min
-                    else:  # --> shutdown mode not reached
-                        P_out_pct = P_out_pct - self.par.p_change_neg * self.ts
-                        load_operation_time = self.ts
-
-                elif (P_out_target_pct < self.par.P_out_min_pct) and \
-                        (P_out_pct < self.par.P_out_min_pct):  # --> [S->S]
-
-                    P_out_pct = max(P_out_target_pct,
-                                    P_out_pct - self.par.p_change_sd_pct * self.ts)
-                    heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
+        # Calculation of new heatup and load state [%]
+        (P_out_pct,
+         heatup_pct, load_operation_time) = self._calc_P_change(P_out_target_pct=P_out_target_pct)
 
         # 3.) Efficiency calculation
         # ---------------------------------------------------------
@@ -410,11 +340,197 @@ class EnergyConversion:
 
         # 4.) Energy Calculation
         # ---------------------------------------------------------
-        # Case distinction between pure load operation, below-load-operation and combinations
-        if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):
-            # -> Startup or holding idle
-            # Energy amount for 'holding prior idle state (loss compensation)', if required
+        # Calculation of updated state
+        new_state_dict = self._calc_E_change(P_out_pct, P_out_0_pct, heatup_pct,
+                                             load_operation_time,
+                                             eta_perc_1, eta_mc_perc_1)
 
+        # 5.) Energy balance calculation
+        # ---------------------------------------------------------
+        # Info: Only calculation of balance, here no abortion criteria
+        E_bulk = (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
+        new_state_dict["E_balance"] = (new_state_dict["E_in_mc"] +
+                                       new_state_dict["E_in_sd1"] +
+                                       new_state_dict["E_in_sd2"] -
+                                       new_state_dict["E_out"] -
+                                       new_state_dict["state_E_loss"] -
+                                       new_state_dict["E_bulk"])
+
+        # 6.) Finally update state variables
+        # ---------------------------------------------------------
+        if not hypothetical_step:
+            self.state.E_in = new_state_dict["E_in"]
+            self.state.E_in_mc = new_state_dict["E_in_mc"]
+            self.state.E_in_sd1 = new_state_dict["E_in_sd1"]
+            self.state.E_in_sd2 = new_state_dict["E_in_sd2"]
+            self.state.E_out = new_state_dict["E_out"]
+            self.state.E_loss = new_state_dict["E_loss"]
+
+            self.state.P_in = new_state_dict["P_in"]
+            self.state.P_in_mc = new_state_dict["P_in_mc"]
+            self.state.P_in_sd1 = new_state_dict["P_in_sd1"]
+            self.state.P_in_sd2 = new_state_dict["P_in_sd2"]
+            self.state.P_out = new_state_dict["P_out"]
+            self.state.P_loss = new_state_dict["P_loss"]
+
+            self.state.heatup_pct = new_state_dict["heatup_pct"]
+            self.state.eta_pct = new_state_dict["eta_pct"]
+            self.state.eta_mc_pct = new_state_dict["eta_mc_pct"]
+
+            self.state.E_balance = new_state_dict["E_balance"]
+
+            self.state.opex_Eur = new_state_dict["opex_Eur"]
+            self.state.errorcode = new_state_dict["errorcode"]
+
+            pass
+
+        else:
+            hypothetical_state = dict()
+            hypothetical_state["E_in"] = new_state_dict["E_in"]
+            hypothetical_state["E_in_mc"] = new_state_dict["E_in_mc"]
+            hypothetical_state["E_in_sd1"] = new_state_dict["E_in_sd1"]
+            hypothetical_state["E_in_sd2"] = new_state_dict["E_in_sd2"]
+            hypothetical_state["E_out"] = new_state_dict["E_out"]
+            hypothetical_state["E_loss"] = new_state_dict["E_loss"]
+            hypothetical_state["E_balance"] = new_state_dict["E_balance"]
+
+            hypothetical_state["P_in"] = new_state_dict["P_in"]
+            hypothetical_state["P_in_mc"] = new_state_dict["P_in_mc"]
+            hypothetical_state["P_in_sd1"] = new_state_dict["P_in_sd1"]
+            hypothetical_state["P_in_sd2"] = new_state_dict["P_in_sd2"]
+            hypothetical_state["P_out"] = new_state_dict["P_out"]
+            hypothetical_state["P_loss"] = new_state_dict["P_loss"]
+
+            hypothetical_state["heatup_pct"] = new_state_dict["heatup_pct"]
+            hypothetical_state["state_eta_pct"] = new_state_dict["eta_pct"]
+            hypothetical_state["state_eta_mc_pct"] = new_state_dict["eta_mc_pct"]
+
+            hypothetical_state["opex_Eur"] = new_state_dict["opex_Eur"]
+            hypothetical_state["errorcode"] = new_state_dict["errorcode"]
+
+            return hypothetical_state
+
+    def _calc_P_change(self, P_out_target_pct):
+        """
+        Calculate new load P
+
+        Different load ranges [%]...
+          - [0,self.par.P_out_min_pct):   Startup/Shutdown area   [S]
+          - [self.par.P_out_min_pct,100]: Operation range         [O]
+
+        results in 3 cases for load increase: [S->S, S->O, O->O],
+        and 3 cases for load decrease:        [O->O, O->S, S->S].
+
+        :param P_out_target_pct: Target load [%]
+
+        :return: P_out_pct  new P_out [%]
+        :return: heatup_pct new heatup state [%]
+        :return: load_operation_time time in operation [min]
+        """
+        # Initialization
+        # ---------------------------------------
+        # Additional state calculations prior to action
+        # Info: Below minimum load corner point, real component output load is zero.
+        #               However for calculation of changes in heatup or cooldown states it is
+        #               used as an artificial variable (for simplicity) and is therefore calculated
+        #               below based on the below-load-operation state variable heatup_pct.
+        #               It is used only internally.
+
+        if self.state.heatup_pct < 100:
+            P_out_pct = round(self.state.heatup_pct / 100 * self.par.P_out_min_pct, 6)
+        else:
+            P_out_pct = round(self.state.P_out / self.par.P_out_rated, 6) * 100
+
+        load_operation_time = 0  # min
+        heatup_pct = self.state.heatup_pct
+
+        # Positive load changes & load holding
+        # ---------------------------------------
+        if P_out_pct <= P_out_target_pct:
+
+            # [S->S]
+            if P_out_target_pct < self.par.P_out_min_pct:
+                P_out_pct = min(P_out_target_pct,
+                                P_out_pct + self.par.p_change_st_pct * self.ts)
+                heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
+
+            # [S->O (potentially)]
+            elif (P_out_target_pct >= self.par.P_out_min_pct) and \
+                    (P_out_pct < self.par.P_out_min_pct):
+
+                prep_delta_perc = (self.par.P_out_min_pct - P_out_pct)  # %pts to min. load
+                prep_time_min = prep_delta_perc / self.par.p_change_st_pct  # time to min. load
+                if prep_time_min <= self.ts:  # --> "O" reached
+                    P_out_pct = min(P_out_target_pct,
+                                    self.par.P_out_min_pct + self.par.p_change_pos * (
+                                            self.ts - prep_time_min))
+                    load_operation_time = self.ts - prep_time_min
+                    heatup_pct = 100
+                else:  # --> "O" not reached
+                    P_out_pct = P_out_pct + self.par.p_change_st_pct * self.ts
+                    heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
+
+            # [O->O]
+            elif (P_out_target_pct >= self.par.P_out_min_pct) and \
+                    (P_out_pct >= self.par.P_out_min_pct):
+
+                P_out_pct = min(P_out_target_pct,
+                                P_out_pct + self.par.p_change_pos * self.ts)
+                load_operation_time = self.ts
+
+        # Negative load changes
+        # ---------------------------------------
+        elif P_out_pct > P_out_target_pct:
+            # [O->O]
+            if P_out_target_pct >= self.par.P_out_min_pct:
+                P_out_pct = max(P_out_target_pct,
+                                P_out_pct - self.par.p_change_neg * self.ts)
+                load_operation_time = self.ts
+
+            # [O->S(potentially)]
+            elif (P_out_target_pct < self.par.P_out_min_pct) and \
+                    (P_out_pct >= self.par.P_out_min_pct):
+
+                load_delta_perc = (P_out_pct - self.par.P_out_min_pct)  # %pts to min load
+                unload_time_min = load_delta_perc / self.par.p_change_neg  # time to min load
+                if unload_time_min < self.ts:  # --> shutdown mode reached
+                    P_out_pct = max(P_out_target_pct,
+                                    self.par.P_out_min_pct - self.par.p_change_sd_pct * (
+                                            self.ts - unload_time_min))
+                    heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
+                    load_operation_time = unload_time_min
+                else:  # --> shutdown mode not reached
+                    P_out_pct = P_out_pct - self.par.p_change_neg * self.ts
+                    load_operation_time = self.ts
+            # [S->S]
+            elif (P_out_target_pct < self.par.P_out_min_pct) and \
+                    (P_out_pct < self.par.P_out_min_pct):
+
+                P_out_pct = max(P_out_target_pct,
+                                P_out_pct - self.par.p_change_sd_pct * self.ts)
+                heatup_pct = P_out_pct / self.par.P_out_min_pct * 100
+
+        return P_out_pct, heatup_pct, load_operation_time
+
+    def _calc_E_change(self, P_out_pct, P_out_0_pct, heatup_pct, load_operation_time,
+                       eta_perc_1, eta_mc_perc_1):
+        """
+        Energy calculation from prior state requires case distinction:
+         - load operation -> load operation [L->L]
+         - noLoad operation -> noLoad operation [NL->NL]
+         - load operation -> noLoad operation [L->NL]
+         - noLoad operation -> load operation [NL->L]
+
+        :param P_out_0_pct:
+        :return:
+        """
+        # Init return dict
+        new_state = dict.fromkeys(['E_in', 'E_in_mc', 'E_loss', "E_in_sd1", "E_in_sd2", "E_out",
+                                   'P_in', 'P_in_mc', 'P_loss', "P_in_sd1", "P_in_sd2", "P_out"])
+
+        # [NL->NL], P_out_pct >= P_out_0_pct
+        # (if required) Energy amount for 'holding prior idle state (loss compensation)'
+        if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):
             if P_out_pct == P_out_0_pct + self.par.p_change_st_pct * self.ts:
                 # -> Maximum start speed
                 # Loss during pure startup is expected to be included in given E_preparation
@@ -450,34 +566,34 @@ class EnergyConversion:
             E_startup_combined = E_compens + E_startup
 
             # State variables
-            state_E_in_mc = 0
-            state_E_loss = E_compens_loss + E_startup_loss
+            new_state["E_in_mc"] = 0
+            new_state["E_loss"] = E_compens_loss + E_startup_loss
+            new_state["P_in_mc"] = 0
+            new_state["P_loss"] = new_state["E_loss"] / (self.ts / 60)
 
-            state_E_in_sd1 = self.par.split_P_sd1 * E_startup_combined
-            state_E_in_sd2 = self.par.split_P_sd2 * E_startup_combined
+            new_state["E_in_sd1"] = self.par.split_P_sd1 * E_startup_combined
+            new_state["E_in_sd2"] = self.par.split_P_sd2 * E_startup_combined
 
-            state_P_in_sd1 = state_E_in_sd1 / (self.ts / 60)
-            state_P_in_sd2 = state_E_in_sd2 / (self.ts / 60)
-            state_P_in_mc = 0
-            state_P_loss = state_E_loss / (self.ts / 60)
+            new_state["P_in_sd1"] = new_state["E_in_sd1"] / (self.ts / 60)
+            new_state["P_in_sd2"] = new_state["P_in_sd2"] / (self.ts / 60)
 
-            # No output energy / load for heatup / coastdown state
-            state_E_out = 0
-            state_P_out = 0
+            # No output energy & load for heatup_pct < 100
+            new_state["E_out"] = 0
+            new_state["P_out"] = 0
 
+        # [xx->NL] P_out_pct < P_out_0_pct
         elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):
-            # --> Coasting down / Shutdown
-            # --> If required calculate operating portion of input energy
+
+            # If required calculate operating portion of input energy
             if self.state.heatup_pct == 100:
                 # Overall...
-                E_in_op = ((self.state.P_in + self.par.P_in_min) /
-                           2 * (load_operation_time / 60))
+                E_in_op = (self.state.P_in + self.par.P_in_min) / 2 * (load_operation_time / 60)
 
-                # Main conversion...
+                # Main conversion
                 E_in_mc_op = ((self.state.P_in_mc + self.par.P_in_mc_min) /
                               2 * (load_operation_time / 60))
 
-                # Secondary...
+                # Secondary
                 E_in_sd_op = E_in_op - E_in_mc_op
                 E_in_sd1_op = self.par.split_P_sd1 * E_in_sd_op
                 E_in_sd2_op = self.par.split_P_sd2 * E_in_sd_op
@@ -494,9 +610,8 @@ class EnergyConversion:
 
             # Coast down portion
             coastdown_time = self.ts - load_operation_time
-
-            P_out_cooldownst_pct = min(P_out_0_pct, self.par.P_out_min_pct)  # Start of coast down
-            # (Hypothetically) Maximal cooldown during give time:
+            P_out_cooldownst_pct = min(P_out_0_pct, self.par.P_out_min_pct)  # PStart of coast down
+            # (Hypothetically) max. cooldown during give time:
             diff_cooldown_max_pct = min(self.par.p_change_sd_pct * coastdown_time,
                                         P_out_cooldownst_pct)
 
@@ -516,23 +631,24 @@ class EnergyConversion:
                          self.par.P_out_min_pct) * self.par.E_preparation_heat + \
                         (diff_load_perc / self.par.P_out_min_pct) * self.par.E_preparation_loss
 
-            # New state variables
-            state_E_in_mc = E_in_mc_op
-            state_E_in_sd1 = E_in_sd1_op + E_in_sd1_cd
-            state_E_in_sd2 = E_in_sd2_op + E_in_sd2_cd
-            state_E_out = E_out
-            state_E_loss = E_loss_op + E_loss_cd
+            # state variables
+            new_state["E_in_mc"] = E_in_mc_op
+            new_state["E_loss"] = E_loss_op + E_loss_cd
+            new_state["P_in_mc"] = 0
+            new_state["P_loss"] = E_loss_cd / (coastdown_time / 60)
+
+            new_state["E_in_sd1"] = E_in_sd1_op + E_in_sd1_cd
+            new_state["E_in_sd2"] = E_in_sd2_op + E_in_sd2_cd
+
+            new_state["E_out"] = E_out
+            new_state["P_out"] = 0
 
             # Power at end of time step is mean energy of coast down, not inluding prior load
             # operation
-            state_P_in_sd1 = E_in_sd1_cd / (coastdown_time / 60)
-            state_P_in_sd2 = E_in_sd2_cd / (coastdown_time / 60)
-            state_P_loss = E_loss_cd / (coastdown_time / 60)
-            # No output load for heatup/coastdown state
-            state_P_in_mc = 0
-            state_P_out = 0
+            new_state["P_in_sd1"] = E_in_sd1_cd / (coastdown_time / 60)
+            new_state["P_in_sd2"] = E_in_sd2_cd / (coastdown_time / 60)
 
-        else:  # Load Operation
+        else:  # [xx->L] Load Operation
 
             # Energy calculations
             P_out = self.par.P_out_rated * (P_out_pct / 100)
@@ -567,88 +683,23 @@ class EnergyConversion:
             E_loss_op = E_in_op - E_out
 
             # New state variables
-            state_E_in_mc = E_in_mc_op
-            state_E_in_sd1 = E_in_sd1_op + E_in_sd1_hp
-            state_E_in_sd2 = E_in_sd2_op + E_in_sd2_hp
-            state_E_out = E_out
-            state_E_loss = E_loss_op + E_loss_hp
+            new_state["E_in_mc"] = E_in_mc_op
+            new_state["E_in_sd1"] = E_in_sd1_op + E_in_sd1_hp
+            new_state["E_in_sd2"] = E_in_sd2_op + E_in_sd2_hp
+            new_state["E_out"] = E_out
+            new_state["E_loss"] = E_loss_op + E_loss_hp
 
-            state_P_in_mc = P_in_mc
-            state_P_in_sd1 = (P_in - P_in_mc) * self.par.split_P_sd1
-            state_P_in_sd2 = (P_in - P_in_mc) * self.par.split_P_sd2
-            state_P_loss = P_in - P_out
-            state_P_out = P_out
+            new_state["P_in_mc"] = P_in_mc
+            new_state["P_in_sd1"] = (P_in - P_in_mc) * self.par.split_P_sd1
+            new_state["P_in_sd2"] = (P_in - P_in_mc) * self.par.split_P_sd2
+            new_state["P_loss"] = P_in - P_out
+            new_state["P_out"] = P_out
 
         # Summation of total input energy and load
-        state_E_in = state_E_in_mc + state_E_in_sd1 + state_E_in_sd2
-        state_P_in = state_P_in_mc + state_P_in_sd1 + state_P_in_sd2
+        new_state["E_in"] = new_state["E_in_mc"] + new_state["E_in_sd1"] + new_state["E_in_sd2"]
+        new_state["P_in"] = new_state["P_in_mc"] + new_state["P_in_sd1"] + new_state["P_in_sd2"]
 
-        state_heatup_pct = heatup_pct
-        state_eta_pct = eta_perc_1
-        state_eta_mc_pct = eta_mc_perc_1
-        state_opex_Eur = None
-        state_errorcode = error
-
-        # 5.) Energy balance calculation
-        # ---------------------------------------------------------
-        # Info: Only calculation of balance, no abort criteria,...
-        E_bulk = (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
-        state_E_balance = (state_E_in_mc + state_E_in_sd1 + state_E_in_sd2
-                           - state_E_out - state_E_loss - E_bulk)
-
-        # 6.) Update state variables
-        # ---------------------------------------------------------
-        if not hypothetical_step:
-            self.state.E_in = state_E_in
-            self.state.E_in_mc = state_E_in_mc
-            self.state.E_in_sd1 = state_E_in_sd1
-            self.state.E_in_sd2 = state_E_in_sd2
-            self.state.E_out = state_E_out
-            self.state.E_loss = state_E_loss
-
-            self.state.P_in = state_P_in
-            self.state.P_in_mc = state_P_in_mc
-            self.state.P_in_sd1 = state_P_in_sd1
-            self.state.P_in_sd2 = state_P_in_sd2
-            self.state.P_out = state_P_out
-            self.state.P_loss = state_P_loss
-
-            self.state.heatup_pct = state_heatup_pct
-            self.state.eta_pct = state_eta_pct
-            self.state.eta_mc_pct = state_eta_mc_pct
-
-            self.state.E_balance = state_E_balance
-
-            self.state.opex_Eur = state_opex_Eur
-            self.state.errorcode = state_errorcode
-
-            pass
-
-        else:
-            hypothetical_state = dict()
-            hypothetical_state["E_in"] = state_E_in
-            hypothetical_state["E_in_mc"] = state_E_in_mc
-            hypothetical_state["E_in_sd1"] = state_E_in_sd1
-            hypothetical_state["E_in_sd2"] = state_E_in_sd2
-            hypothetical_state["E_out"] = state_E_out
-            hypothetical_state["E_loss"] = state_E_loss
-            hypothetical_state["E_balance"] = state_E_balance
-
-            hypothetical_state["P_in"] = state_P_in
-            hypothetical_state["P_in_mc"] = state_P_in_mc
-            hypothetical_state["P_in_sd1"] = state_P_in_sd1
-            hypothetical_state["P_in_sd2"] = state_P_in_sd2
-            hypothetical_state["P_out"] = state_P_out
-            hypothetical_state["P_loss"] = state_P_loss
-
-            hypothetical_state["heatup_pct"] = state_heatup_pct
-            hypothetical_state["state_eta_pct"] = state_eta_pct
-            hypothetical_state["state_eta_mc_pct"] = state_eta_mc_pct
-
-            hypothetical_state["opex_Eur"] = state_opex_Eur
-            hypothetical_state["errorcode"] = state_errorcode
-
-            return hypothetical_state
+        return new_state
 
     def step_action_stationary(self, action: float) -> None:
         """
@@ -769,6 +820,7 @@ class EnergyConversion:
         """
         Reset to initial state
         (e.g. for ML/RL-Algorithms)
+
         :return:
         """
         self.state = copy.deepcopy(self.state_initial)
