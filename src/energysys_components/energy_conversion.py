@@ -32,8 +32,8 @@ class EConversionParams:
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
 
-    E_loadchange: list  # load dependend additional required energy
-    # (example: SOFC stack temperature increase)  [[load [%]],[Energy [kWh]]]
+    E_loadchange: list  # load change dependend additional required energy
+    # (example: due to SOFC stack temperature increase)  [[load [%]],[Energy [kWh]]]
 
     # Overall component efficiency
     eta_pct: list  # load dependend efficiency  [[load [%]],[efficiency [%]]]
@@ -326,35 +326,35 @@ class EnergyConversion:
                                                'r': [0, 100]})
 
         # Calculation of new heatup and load state [%]
-        (P_out_pct,
-         heatup_pct, load_operation_time) = self._calc_P_change(P_out_target_pct=P_out_target_pct)
+        (P_out_1_pct,
+         heatup_1_pct, load_operation_time) = self._calc_P_change(P_out_target_pct=P_out_target_pct)
 
         # 3.) Efficiency calculation
         # ---------------------------------------------------------
-        if heatup_pct < 100:
-            eta_perc_1 = self.par.eta_preparation
-            eta_mc_perc_1 = 0
+        if heatup_1_pct < 100:
+            eta_1_pct = self.par.eta_preparation
+            eta_mc_1_pct = 0
         else:
-            eta_perc_1 = self.par.eta_pct_ip(P_out_pct).item(0)
-            eta_mc_perc_1 = self.par.eta_mc_pct_ip(P_out_pct).item(0)
+            eta_1_pct = self.par.eta_pct_ip(P_out_1_pct).item(0)
+            eta_mc_1_pct = self.par.eta_mc_pct_ip(P_out_1_pct).item(0)
 
         # 4.) Energy Calculation
         # ---------------------------------------------------------
         # Calculation of updated state
-        new_state_dict = self._calc_E_change(P_out_pct, P_out_0_pct, heatup_pct,
+        new_state_dict = self._calc_E_change(P_out_1_pct, P_out_0_pct, heatup_1_pct,
                                              load_operation_time,
-                                             eta_perc_1, eta_mc_perc_1)
+                                             eta_1_pct, eta_mc_1_pct)
 
         # 5.) Energy balance calculation
         # ---------------------------------------------------------
         # Info: Only calculation of balance, here no abortion criteria
-        E_bulk = (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
+        E_bulk = (heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
         new_state_dict["E_balance"] = (new_state_dict["E_in_mc"] +
                                        new_state_dict["E_in_sd1"] +
                                        new_state_dict["E_in_sd2"] -
                                        new_state_dict["E_out"] -
-                                       new_state_dict["state_E_loss"] -
-                                       new_state_dict["E_bulk"])
+                                       new_state_dict["E_loss"] -
+                                       E_bulk)
 
         # 6.) Finally update state variables
         # ---------------------------------------------------------
@@ -373,14 +373,14 @@ class EnergyConversion:
             self.state.P_out = new_state_dict["P_out"]
             self.state.P_loss = new_state_dict["P_loss"]
 
-            self.state.heatup_pct = new_state_dict["heatup_pct"]
-            self.state.eta_pct = new_state_dict["eta_pct"]
-            self.state.eta_mc_pct = new_state_dict["eta_mc_pct"]
+            self.state.heatup_pct = heatup_1_pct
+            self.state.eta_pct = eta_1_pct
+            self.state.eta_mc_pct = eta_mc_1_pct
 
             self.state.E_balance = new_state_dict["E_balance"]
 
-            self.state.opex_Eur = new_state_dict["opex_Eur"]
-            self.state.errorcode = new_state_dict["errorcode"]
+            # self.state.opex_Eur = new_state_dict["opex_Eur"]
+            # self.state.errorcode = new_state_dict["errorcode"]
 
             pass
 
@@ -401,12 +401,12 @@ class EnergyConversion:
             hypothetical_state["P_out"] = new_state_dict["P_out"]
             hypothetical_state["P_loss"] = new_state_dict["P_loss"]
 
-            hypothetical_state["heatup_pct"] = new_state_dict["heatup_pct"]
-            hypothetical_state["state_eta_pct"] = new_state_dict["eta_pct"]
-            hypothetical_state["state_eta_mc_pct"] = new_state_dict["eta_mc_pct"]
+            hypothetical_state["heatup_pct"] = heatup_1_pct
+            hypothetical_state["state_eta_pct"] = eta_1_pct
+            hypothetical_state["state_eta_mc_pct"] = eta_mc_1_pct
 
-            hypothetical_state["opex_Eur"] = new_state_dict["opex_Eur"]
-            hypothetical_state["errorcode"] = new_state_dict["errorcode"]
+            # hypothetical_state["opex_Eur"] = new_state_dict["opex_Eur"]
+            # hypothetical_state["errorcode"] = new_state_dict["errorcode"]
 
             return hypothetical_state
 
@@ -575,7 +575,7 @@ class EnergyConversion:
             new_state["E_in_sd2"] = self.par.split_P_sd2 * E_startup_combined
 
             new_state["P_in_sd1"] = new_state["E_in_sd1"] / (self.ts / 60)
-            new_state["P_in_sd2"] = new_state["P_in_sd2"] / (self.ts / 60)
+            new_state["P_in_sd2"] = new_state["E_in_sd2"] / (self.ts / 60)
 
             # No output energy & load for heatup_pct < 100
             new_state["E_out"] = 0
