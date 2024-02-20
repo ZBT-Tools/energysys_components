@@ -3,10 +3,10 @@
 ## Description
 Energy conversion component class with quasi-static state change methods.
 
-A Python-based simulation tool was developed to analyse energy conversion systems in an early concept phase, where energy conversion components are described by technical and economic specifications in form of surrogate models [1]. These models provide uniform, simplified descriptions of dynamic behaviour such as start-up, heat-up and load change in temporal and energetic terms. Exemplary components include fuel cells, batteries and gas reformers. Multiple different components are linked via enthalpy flow to form a single dependent energy conversion path. A system can comprised of several different paths. [2]
+A Python-based simulation tool was developed to analyse energy conversion systems in an early concept phase, where energy conversion components are described by technical and economic specifications in form of surrogate models. These models provide uniform, simplified descriptions of dynamic behaviour such as start-up, heat-up and load change in temporal and energetic terms. Exemplary components include fuel cells, batteries and gas reformers. Multiple different components are linked via enthalpy flow to form a single dependent energy conversion path. A system can comprised of several different paths.
 
 
-EnergyConversion-Objects are initialized with EConversionParams-Objects (DataClass):
+Parameter of EnergyConversion-objects, initialized with EConversionParams (DataClass):
 
 ```math
 \begin{align*}
@@ -14,26 +14,31 @@ EnergyConversion-Objects are initialized with EConversionParams-Objects (DataCla
 &\text{Startup preparation time} &  &t_{preparation}  & &[minutes] \\
 &\text{Startup energy} &  &E_{preparation}  & &[kWh] \\
 &\text{Startup efficiency} &  &\eta_{preparation}  & &[kWh] \\
+
 &\textbf{Load operation definitions} \\
 &\text{Minimum Output Power} &  &P_{out,min}  & &[\%] \\
 &\text{Rated Output Power} &  &P_{out,rated}  & &[kW] \\
 &\text{Load Change pos.} &  &p_{change,pos}  & &[\%/min] \\
 &\text{Load Change neg.} &  &p_{change,neg}  & &[\%/min] \\
+&\text{Load Change Energy} &  &E_{change}=f(P_{out})  & &[kWh] \\
+
 &\textbf{Efficiency definitions} \\
-&\text{Overall efficiency curve} &  &\eta=f(P)  & &[\%] \\
-&\text{Main conversion efficiency curve} &  &\eta_{mc}=f(P)  & &[\%] \\
+&\text{Overall efficiency curve} &  &\eta=f(P_{out})  & &[\%] \\
+&\text{Main conversion efficiency curve} &  &\eta_{mc}=f(P_{out})  & &[\%] \\
+
 &\textbf{Shutdown definitions} \\
 &\text{Cooldown time} &  &t_{cooldown}  & &[minutes] \\
 &\textbf{Input Energy Split definitions} \\
 &\text{Secondary Input Split} &  &split_{P\_sd}  & &[-,-] \\
+
 &\textbf{Techno-economic definitions} \\
-&\text{Investment Costs} &  &p_{\euro{}}  & &[\euro{}/kW] \\
+&\text{Investment Costs} &  &p_{Eur}  & &[Eur/kW] \\
 &\text{Volume} &  &p_{vol}  & &[m^3/kW] \\
 &\text{Weight} &  &t_{mass}  & &[kg/kW] \\
 \end{align*}
 ```
 
-Energy conversion component object state described EConversionState-Object (DataClass):
+State of EnergyConversion-objects, described with EConversionState-object (DataClass):
 
 ```math
 \begin{align*}
@@ -61,7 +66,7 @@ Energy conversion component object state described EConversionState-Object (Data
 &\text{Overall efficiency} &  &\eta  & &[\%] \\
 &\text{Main conversion efficiency} &  &\eta_{mc}  & &[\%] \\
 &\textbf{Techno-economic} \\
-&\text{Opex} &  &opex  & &[\euro{}] \\
+&\text{Opex} &  &opex  & &[Eur] \\
 \end{align*}
 ```
 
