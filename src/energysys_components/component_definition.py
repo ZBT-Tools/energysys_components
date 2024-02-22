@@ -3,7 +3,7 @@ Component definition examples
 """
 
 from energysys_components.energy_conversion import EConversionParams
-from energysys_components.energy_carrier import NH3, H2, Loss, Electr
+from energysys_components.energy_carrier import NH3, H2, Electr
 
 # Ammonia Cracker
 Cracker = EConversionParams(
@@ -173,7 +173,7 @@ SOFC = EConversionParams(
     # Main conversion path efficiency
     eta_mc_pct=[[15, 100], [90, 91]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
-    E_loadchange=[[0, 100], [0, 0]],  # [[load [%]],[Energy [kWh]]]
+    E_loadchange=[[0, 15, 100], [0, 0, 20]],  # [[load [%]],[Energy [kWh]]]
 
     # Shutdown
     t_cooldown=10,  # Time until system cooled down [Minutes] ("idle to cool")

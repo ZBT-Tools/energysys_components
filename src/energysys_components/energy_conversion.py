@@ -249,7 +249,7 @@ class EnergyConversion:
         # :param debug:       bool flag, not implemented yet
         """
 
-        # ToDO: Check if dataclass object conv_par can be frozen here
+        # IDEA: Check if dataclass object conv_par can be frozen here
 
         self.par = conv_par
         self.ts = ts
@@ -289,7 +289,7 @@ class EnergyConversion:
          6.) Update state variables
 
         """
-        error = 0  # Init error code
+        # error = 0  # Init error code
 
         # 1.) State calculations prior to action
         # ---------------------------------------
@@ -347,14 +347,17 @@ class EnergyConversion:
 
         # 5.) Energy balance calculation
         # ---------------------------------------------------------
-        # Info: Only calculation of balance, here no abortion criteria
-        E_bulk = (heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
+        # Info: Only calculation of balance, here no abort criteria
+        E_bulk1 = (heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_heat
+        E_bulk2 = (self.par.E_loadchange_ip(P_out_1_pct) - self.par.E_loadchange_ip(P_out_0_pct))
         new_state_dict["E_balance"] = (new_state_dict["E_in_mc"] +
                                        new_state_dict["E_in_sd1"] +
                                        new_state_dict["E_in_sd2"] -
                                        new_state_dict["E_out"] -
                                        new_state_dict["E_loss"] -
-                                       E_bulk)
+                                       E_bulk1 -
+                                       E_bulk2
+                                       )
 
         # 6.) Finally update state variables
         # ---------------------------------------------------------
@@ -512,17 +515,17 @@ class EnergyConversion:
 
         return P_out_pct, heatup_pct, load_operation_time
 
-    def _calc_E_change(self, P_out_pct, P_out_0_pct, heatup_pct, load_operation_time,
-                       eta_perc_1, eta_mc_perc_1):
+    def _calc_E_change(self, P_out_pct, P_out_0_pct, heatup_1_pct, load_operation_time,
+                       eta_1_pct, eta_mc_1_pct) -> dict:
         """
-        Energy calculation from prior state requires case distinction:
+        Energy calculation from prior state P_out_0_pct to new state P_out_pct
+        Case distinction required:
          - load operation -> load operation [L->L]
          - noLoad operation -> noLoad operation [NL->NL]
          - load operation -> noLoad operation [L->NL]
          - noLoad operation -> load operation [NL->L]
 
-        :param P_out_0_pct:
-        :return:
+        :return: new_state: dict
         """
         # Init return dict
         new_state = dict.fromkeys(['E_in', 'E_in_mc', 'E_loss', "E_in_sd1", "E_in_sd2", "E_out",
@@ -530,18 +533,18 @@ class EnergyConversion:
 
         # [NL->NL], P_out_pct >= P_out_0_pct
         # (if required) Energy amount for 'holding prior idle state (loss compensation)'
-        if (heatup_pct < 100) and (P_out_pct >= P_out_0_pct):
+        if (heatup_1_pct < 100) and (P_out_pct >= P_out_0_pct):
             if P_out_pct == P_out_0_pct + self.par.p_change_st_pct * self.ts:
                 # -> Maximum start speed
                 # Loss during pure startup is expected to be included in given E_preparation
-                # and therefore no additional compensation is requred
+                # and therefore no additional compensation is required #IDEA
                 E_compens = 0
                 E_compens_loss = 0
 
             elif P_out_pct - self.par.p_change_sd_pct * self.ts < 0:
                 # In low heatup state, compesation is neglected, which is
                 # sufficient for rule based control (as this is no reasonable target state),
-                # however needs to be refined for advanced control ToDo
+                # however needs to be refined for advanced control #IDEA
                 E_compens = 0
                 E_compens_loss = 0
 
@@ -554,14 +557,14 @@ class EnergyConversion:
             else:
                 # For all other startup targets, compesation is neglected, which is
                 # sufficient for rule based control (as this is no reasonable target state),
-                # however needs to be refined for advanced control ToDo
+                # however needs to be refined for advanced control #IDEA
                 E_compens = 0
                 E_compens_loss = 0
 
             # Energy amount for 'changing heatup state'
-            E_startup = (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation
+            E_startup = (heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation
             E_startup_loss = (
-                    (heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_loss)
+                    (heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation_loss)
 
             E_startup_combined = E_compens + E_startup
 
@@ -582,19 +585,22 @@ class EnergyConversion:
             new_state["P_out"] = 0
 
         # [xx->NL] P_out_pct < P_out_0_pct
-        elif (heatup_pct < 100) and (P_out_pct < P_out_0_pct):
+        elif (heatup_1_pct < 100) and (P_out_pct < P_out_0_pct):
 
-            # If required calculate operating portion of input energy
+            # If required calculate operating portion (.._op) of input energy
             if self.state.heatup_pct == 100:
-                # Overall...
                 E_in_op = (self.state.P_in + self.par.P_in_min) / 2 * (load_operation_time / 60)
 
                 # Main conversion
                 E_in_mc_op = ((self.state.P_in_mc + self.par.P_in_mc_min) /
                               2 * (load_operation_time / 60))
 
-                # Secondary
-                E_in_sd_op = E_in_op - E_in_mc_op
+                # Load Change
+                E_loadchange_op = (self.par.E_loadchange_ip(P_out_pct) -
+                                   self.par.E_loadchange_ip(P_out_0_pct))
+
+                # Secondary Energy
+                E_in_sd_op = E_in_op - E_in_mc_op + E_loadchange_op
                 E_in_sd1_op = self.par.split_P_sd1 * E_in_sd_op
                 E_in_sd2_op = self.par.split_P_sd2 * E_in_sd_op
 
@@ -615,7 +621,7 @@ class EnergyConversion:
             diff_cooldown_max_pct = min(self.par.p_change_sd_pct * coastdown_time,
                                         P_out_cooldownst_pct)
 
-            # If required calculate energy amount for coast down ( for superposed energy inp.)
+            # If required calculate energy amount for coast down ( for superposed energy input)
             if P_out_pct > P_out_cooldownst_pct - diff_cooldown_max_pct:
                 diff_load_perc = P_out_pct - (P_out_cooldownst_pct - diff_cooldown_max_pct)
                 E_diff = diff_load_perc / self.par.P_out_min_pct * self.par.E_preparation
@@ -649,20 +655,19 @@ class EnergyConversion:
             new_state["P_in_sd2"] = E_in_sd2_cd / (coastdown_time / 60)
 
         else:  # [xx->L] Load Operation
-
             # Energy calculations
             P_out = self.par.P_out_rated * (P_out_pct / 100)
 
             E_out = (max(self.state.P_out, self.par.P_out_min) + P_out) / 2 * (
                     load_operation_time / 60)
 
-            P_in = P_out / (eta_perc_1 / 100)
-            P_in_mc = P_out / (eta_mc_perc_1 / 100)
+            P_in = P_out / (eta_1_pct / 100)
+            P_in_mc = P_out / (eta_mc_1_pct / 100)
 
             # If required calculate starting portion of input energy
             if self.state.heatup_pct < 100:
                 # Startup phase
-                E_in_hp = ((heatup_pct - self.state.heatup_pct) / 100 * self.par.E_preparation)
+                E_in_hp = ((heatup_1_pct - self.state.heatup_pct) / 100 * self.par.E_preparation)
                 E_loss_hp = E_in_hp * ((100 - self.par.eta_preparation) / 100)
                 E_in_sd1_hp = self.par.split_P_sd1 * E_in_hp
                 E_in_sd2_hp = self.par.split_P_sd2 * E_in_hp
@@ -677,7 +682,11 @@ class EnergyConversion:
                     load_operation_time / 60)
             E_in_mc_op = ((max(self.state.P_in_mc, self.par.P_in_mc_min) + P_in_mc) /
                           2 * (load_operation_time / 60))
-            E_in_sd_op = E_in_op - E_in_mc_op
+            # Load Change
+            E_loadchange_op = (self.par.E_loadchange_ip(P_out_pct) -
+                               self.par.E_loadchange_ip(P_out_0_pct))
+
+            E_in_sd_op = E_in_op - E_in_mc_op + E_loadchange_op
             E_in_sd1_op = self.par.split_P_sd1 * E_in_sd_op
             E_in_sd2_op = self.par.split_P_sd2 * E_in_sd_op
             E_loss_op = E_in_op - E_out
@@ -775,7 +784,7 @@ class EnergyConversion:
         Calculation of action (= load target [0,1]) for step_action()-Method equivalent to
         given main conversion(!) input energy requirement [kWh]
 
-        ToDO: To be implemented
+        To be implemented
         """
 
         # def func(x):
