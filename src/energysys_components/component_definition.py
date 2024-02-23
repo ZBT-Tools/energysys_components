@@ -3,7 +3,7 @@ Component definition examples
 """
 
 from energysys_components.energy_conversion import EConversionParams
-from energysys_components.energy_carrier import NH3, H2, Loss, Electr
+from energysys_components.energy_carrier import NH3, H2, Electr
 
 # Ammonia Cracker
 Cracker = EConversionParams(
@@ -25,6 +25,7 @@ Cracker = EConversionParams(
 
     p_change_pos=5,  # [% output load/min]
     p_change_neg=5,  # [% output load/min]
+    E_loadchange=[[0, 100], [0, 0]],  # [[load [%]],[Energy [kWh]]]
 
     # Overall component efficiency
     eta_pct=[[15, 100], [75, 80]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
@@ -62,12 +63,15 @@ PEM = EConversionParams(
     t_preparation=5,  # Time until system is available [Minutes] ("idle")
     E_preparation=20,  # Preparation Energy [kWh] (from cold to idle)
     eta_preparation=50,  # [%] For calculation of losses below operation
+
     # Load Operation
     P_out_min_pct=15,  # Minimum operating load [% Load]
     P_out_rated=2000,  # Rated Load [kW]
 
     p_change_pos=20,  # [% output load/min]
     p_change_neg=20,  # [% output load/min]
+
+    E_loadchange=[[0, 100], [0, 0]],  # [[load [%]],[Energy [kWh]]]
 
     # Overall component efficiency
     eta_pct=[[15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85,
@@ -120,6 +124,7 @@ Purification = EConversionParams(
 
     p_change_pos=5,  # [% output load/min]
     p_change_neg=5,  # [% output load/min]
+    E_loadchange=[[0, 100], [0, 0]],  # [[load [%]],[Energy [kWh]]]
 
     # Overall component efficiency
     eta_pct=[[15, 100], [90, 91]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
@@ -168,6 +173,7 @@ SOFC = EConversionParams(
     # Main conversion path efficiency
     eta_mc_pct=[[15, 100], [90, 91]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
+    E_loadchange=[[0, 15, 100], [0, 0, 20]],  # [[load [%]],[Energy [kWh]]]
 
     # Shutdown
     t_cooldown=10,  # Time until system cooled down [Minutes] ("idle to cool")

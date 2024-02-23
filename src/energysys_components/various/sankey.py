@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from energysys_components.component_definition import PEM
-from energysys_components.energy_carrier import H2, NH3, Loss, Electr
+from energysys_components.energy_carrier import Loss
 from energysys_components.energy_conversion import EConversionParams
 
 

@@ -6,3 +6,4 @@ setuptools
 scipy
 jupyterlab
 dash
+openpyxl

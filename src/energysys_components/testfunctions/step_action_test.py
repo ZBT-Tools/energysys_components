@@ -6,11 +6,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
-from src.energysys_components.component_definition import PEM, Cracker,Purification
+from src.energysys_components.component_definition import SOFC
 
 # Example Definition
-component = PEM
-# component = Cracker
+component = SOFC
 
 off_state = EConversionState()
 full_load_state = EConversionState(P_in=2000,
@@ -48,7 +47,6 @@ if __name__ == "__main__":
         fig = go.Figure()
         for cl in df1.columns:
             fig.add_trace(go.Scatter(x=df1.index[1:], y=df1[cl][1:],
-
                                      mode='lines',
                                      name=cl))
             fig.update_layout(title=f"Target,rel: {target}")
