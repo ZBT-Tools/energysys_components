@@ -8,67 +8,13 @@ A Python-based simulation tool was developed to analyse energy conversion system
 
 Parameter of EnergyConversion-objects, initialized with EConversionParams (DataClass):
 
-```math
-\begin{align*}
-&\textbf{Startup / Heatup definitions} \\
-&\text{Startup preparation time} &  &t_{preparation}  & &[minutes] \\
-&\text{Startup energy} &  &E_{preparation}  & &[kWh] \\
-&\text{Startup efficiency} &  &\eta_{preparation}  & &[kWh] \\
+![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/ba2d3632-601c-44ab-ae52-55afa8a59e73)
 
-&\textbf{Load operation definitions} \\
-&\text{Minimum Output Power} &  &P_{out,min}  & &[\%] \\
-&\text{Rated Output Power} &  &P_{out,rated}  & &[kW] \\
-&\text{Load Change pos.} &  &p_{change,pos}  & &[\%/min] \\
-&\text{Load Change neg.} &  &p_{change,neg}  & &[\%/min] \\
-&\text{Load Change Energy} &  &E_{change}=f(P_{out})  & &[kWh] \\
-
-&\textbf{Efficiency definitions} \\
-&\text{Overall efficiency curve} &  &\eta=f(P_{out})  & &[\%] \\
-&\text{Main conversion efficiency curve} &  &\eta_{mc}=f(P_{out})  & &[\%] \\
-
-&\textbf{Shutdown definitions} \\
-&\text{Cooldown time} &  &t_{cooldown}  & &[minutes] \\
-&\textbf{Input Energy Split definitions} \\
-&\text{Secondary Input Split} &  &split_{P\_sd}  & &[-,-] \\
-
-&\textbf{Techno-economic definitions} \\
-&\text{Investment Costs} &  &p_{Eur}  & &[Eur/kW] \\
-&\text{Volume} &  &p_{vol}  & &[m^3/kW] \\
-&\text{Weight} &  &t_{mass}  & &[kg/kW] \\
-\end{align*}
-```
 
 State of EnergyConversion-objects, described with EConversionState-object (DataClass):
 
-```math
-\begin{align*}
-&\textbf{Combined Input} \\
-&\text{Combined input energy} &  &E_{in}  & &[kWh] \\
-&\text{Combined input power} &  &P_{in}  & &[kW] \\
-&\textbf{Main Conversion Path Input} \\
-&\text{Main conversion input energy} &  &E_{in,mc}  & &[kWh] \\
-&\text{Main conversion input power} &  &P_{in,mc}  & &[kW] \\
-&\textbf{Secondary 1 Input} \\
-&\text{Secondary 1 input energy} &  &E_{in,sd1}  & &[kWh] \\
-&\text{Secondary 1 input power} &  &P_{in,sd1}  & &[kW] \\
-&\textbf{Secondary 2 Input} \\
-&\text{Secondary 2 input energy} &  &E_{in,sd2}  & &[kWh] \\
-&\text{Secondary 2 input power} &  &P_{in,sd2}  & &[kW] \\
-&\textbf{Combined Output} \\
-&\text{Combined output energy} &  &E_{out}  & &[kWh] \\
-&\text{Combined output power} &  &P_{out}  & &[kW] \\
-&\textbf{Loss} \\
-&\text{Loss energy} &  &E_{loss}  & &[kWh] \\
-&\text{Loss power} &  &P_{loss}  & &[kW] \\
-&\textbf{Heatup} \\
-&\text{Heatup state} &  &HU  & &[\%] \\
-&\textbf{Efficiencies} \\
-&\text{Overall efficiency} &  &\eta  & &[\%] \\
-&\text{Main conversion efficiency} &  &\eta_{mc}  & &[\%] \\
-&\textbf{Techno-economic} \\
-&\text{Opex} &  &opex  & &[Eur] \\
-\end{align*}
-```
+![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/8935b8e7-9422-4764-add9-84a66f217b6c)
+
 
 ![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/42a7fe7a-4aef-4df6-8b4d-f8af7aa51c4f)
 
