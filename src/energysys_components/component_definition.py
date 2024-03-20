@@ -4,6 +4,7 @@ Component definition examples
 
 from energysys_components.energy_conversion import EConversionParams
 from energysys_components.energy_carrier import NH3, H2, Electr
+from energysys_components.energy_storage import StorageParams
 
 # Ammonia Cracker
 Cracker = EConversionParams(
@@ -190,3 +191,17 @@ SOFC = EConversionParams(
     # Control Settins
     control_type_target=True,  # If true, input is load target
     norm_limits=[0, 1])
+
+Battery = StorageParams(E_cap=1,
+                        E_out_type=Electr,
+                        E_in_sd1_type=Electr,
+                        E_in_sd2_type=Electr,
+                        E_in_mc_type=Electr,
+                        spec_mass=1,
+                        spec_volume=1,
+                        autoIncrease=True,
+                        C_rate_charge=1,
+                        spec_invest_cost=1,
+                        eta=0.8,
+                        name="Battery Test",
+                        )

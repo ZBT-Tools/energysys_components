@@ -3,7 +3,10 @@
 ## Description
 Energy conversion component class with quasi-static state change methods.
 
-A Python-based simulation tool was developed to analyse energy conversion systems in an early concept phase, where energy conversion components are described by technical and economic specifications in form of surrogate models. These models provide uniform, simplified descriptions of dynamic behaviour such as start-up, heat-up and load change in temporal and energetic terms. Exemplary components include fuel cells, batteries and gas reformers. Multiple different components are linked via enthalpy flow to form a single dependent energy conversion path. A system can comprised of several different paths.
+A Python-based simulation tool to analyse energy conversion systems in an early concept phase, where energy conversion components are described by technical and economic specifications in form of surrogate models. These models provide uniform, simplified descriptions of dynamic behaviour such as start-up, heat-up and load change in temporal and energetic terms. Exemplary components include fuel cells, batteries and gas reformers. 
+
+Multiple different components can be linked via enthalpy flow to form a single dependent energy conversion path. A system can be comprised of several different paths.
+https://github.com/ZBT-Tools/energysys_control
 
 
 Parameter of EnergyConversion-objects, initialized with EConversionParams (DataClass):

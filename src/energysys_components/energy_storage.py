@@ -4,12 +4,21 @@ Energy Storage, Battery System
 from dataclasses import dataclass
 import copy
 
+from energysys_components.energy_carrier import ECarrier
+
 
 @dataclass(frozen=False)
 class StorageParams:
     """
     Definition of energy storage component
     """
+    name: str
+
+    # Definition of energy carriers
+    E_in_mc_type: ECarrier
+    E_in_sd1_type: ECarrier
+    E_in_sd2_type: ECarrier
+    E_out_type: ECarrier
 
     eta: float  # Const. or output dependend efficiency [0-1]
     C_rate_charge: float  # This is the charge per hour rate –
