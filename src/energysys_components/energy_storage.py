@@ -36,6 +36,16 @@ class StorageState:
     """
     To be implemented
     """
+    # Mean input power
+    P_in: float = 0  # [kW]
+    E_in: float = 0  # [kWh]
+    # Mean output power
+    P_out: float = 0  # [kW]
+    E_out: float = 0  # [kWh]
+    # Mean loss
+    P_loss: float = 0  # [kW]
+    E_loss: float = 0  # [kWh]
+
     SoC: float = 1  # State of charge 0-1, 0: empty, 1: full
     E_cap_incr: float = 0  # Required capacity increase during run
 
@@ -76,8 +86,16 @@ class EnergyStorage:
 
         if E_req <= 0:  # -> bat. discharge
             E_SoC_1 = E_SoC_0 + E_req
+            self.state.E_out = E_req
+            self.state.P_out = E_req / (self.ts / 60)
+            self.state.E_in = 0
+            self.state.P_in = 0
         else:  # ... charge with efficiency
             E_SoC_1 = E_SoC_0 + self.par.eta * E_req
+            self.state.E_out = 0
+            self.state.P_out = 0
+            self.state.E_in = E_req
+            self.state.P_in = E_req / (self.ts / 60)
 
         # If required, update capacity 'on the fly' ....
         if E_SoC_1 < 0:  # ... if SoC < 0
