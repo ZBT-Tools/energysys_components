@@ -86,8 +86,8 @@ class EnergyStorage:
 
         if E_req <= 0:  # -> bat. discharge
             E_SoC_1 = E_SoC_0 + E_req
-            self.state.E_out = E_req
-            self.state.P_out = E_req / (self.ts / 60)
+            self.state.E_out = - E_req
+            self.state.P_out = - E_req / (self.ts / 60)
             self.state.E_in = 0
             self.state.P_in = 0
         else:  # ... charge with efficiency
