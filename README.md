@@ -1,3 +1,6 @@
+
+![internet_in_farbe_en](https://github.com/ZBT-Tools/energysys_components/assets/94350939/8c4fa2ea-d182-44e0-a0e2-26d226177063)
+
 # energysys_components
 
 ## Description
