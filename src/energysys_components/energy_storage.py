@@ -121,13 +121,16 @@ class EnergyStorage:
 
         pass
 
-    def reset(self):
+    def reset(self,
+              reset_capacity: bool = True):
         """
         Reset to initial state
         (e.g. for ML/RL-Algorithms)
         :return:
         """
         self.state = copy.deepcopy(self.state_initial)
+        if reset_capacity:
+            self.par.E_cap = 0.001
 
 
 if __name__ == "__main__":
