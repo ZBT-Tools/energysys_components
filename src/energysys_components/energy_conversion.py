@@ -238,8 +238,8 @@ class EnergyConversion:
     """
 
     def __init__(self, conv_par: EConversionParams,
-                 conv_state: EConversionState,
-                 ts,
+                 ts: int,
+                 conv_state: EConversionState = EConversionState(),
                  # debug: bool = False (tbi)
                  ):
         """
