@@ -47,6 +47,9 @@ class EConversionParams:
     # 1: input flow, 2: electric
     split_P_sd: list  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
+    # Factor useable heat in loss
+    fact_P_Loss_P_heat: float  # [0,1] Factor of useable heat energy in loss
+
     # Techno-economic
     spec_invest_cost: float  # [€/kW]
     spec_volume: float  # [m^^3/kW]
@@ -216,6 +219,9 @@ class EConversionState:
     P_loss: float = 0  # [kW]
     E_loss: float = 0  # [kWh]
 
+    P_heat: float = 0  # [kW]
+    E_heat: float = 0  # [kWh]
+
     heatup_pct: float = 0  # [%]
     eta_pct: float = 0  # [%]
     eta_mc_pct: float = 0  # [%]
@@ -368,6 +374,7 @@ class EnergyConversion:
             self.state.E_in_sd2 = new_state_dict["E_in_sd2"]
             self.state.E_out = new_state_dict["E_out"]
             self.state.E_loss = new_state_dict["E_loss"]
+            self.state.E_heat = new_state_dict["E_heat"]
 
             self.state.P_in = new_state_dict["P_in"]
             self.state.P_in_mc = new_state_dict["P_in_mc"]
@@ -375,6 +382,7 @@ class EnergyConversion:
             self.state.P_in_sd2 = new_state_dict["P_in_sd2"]
             self.state.P_out = new_state_dict["P_out"]
             self.state.P_loss = new_state_dict["P_loss"]
+            self.state.P_heat = new_state_dict["P_heat"]
 
             self.state.heatup_pct = heatup_1_pct
             self.state.eta_pct = eta_1_pct
@@ -395,6 +403,7 @@ class EnergyConversion:
             hypothetical_state["E_in_sd2"] = new_state_dict["E_in_sd2"]
             hypothetical_state["E_out"] = new_state_dict["E_out"]
             hypothetical_state["E_loss"] = new_state_dict["E_loss"]
+            hypothetical_state["E_heat"] = new_state_dict["E_heat"]
             hypothetical_state["E_balance"] = new_state_dict["E_balance"]
 
             hypothetical_state["P_in"] = new_state_dict["P_in"]
@@ -403,6 +412,7 @@ class EnergyConversion:
             hypothetical_state["P_in_sd2"] = new_state_dict["P_in_sd2"]
             hypothetical_state["P_out"] = new_state_dict["P_out"]
             hypothetical_state["P_loss"] = new_state_dict["P_loss"]
+            hypothetical_state["P_heat"] = new_state_dict["P_heat"]
 
             hypothetical_state["heatup_pct"] = heatup_1_pct
             hypothetical_state["state_eta_pct"] = eta_1_pct
@@ -529,7 +539,9 @@ class EnergyConversion:
         """
         # Init return dict
         new_state = dict.fromkeys(['E_in', 'E_in_mc', 'E_loss', "E_in_sd1", "E_in_sd2", "E_out",
-                                   'P_in', 'P_in_mc', 'P_loss', "P_in_sd1", "P_in_sd2", "P_out"])
+                                   "E_heat",
+                                   'P_in', 'P_in_mc', 'P_loss', "P_in_sd1", "P_in_sd2", "P_out",
+                                   "P_heat"])
 
         # [NL->NL], P_out_pct >= P_out_0_pct
         # (if required) Energy amount for 'holding prior idle state (loss compensation)'
@@ -707,6 +719,9 @@ class EnergyConversion:
         # Summation of total input energy and load
         new_state["E_in"] = new_state["E_in_mc"] + new_state["E_in_sd1"] + new_state["E_in_sd2"]
         new_state["P_in"] = new_state["P_in_mc"] + new_state["P_in_sd1"] + new_state["P_in_sd2"]
+
+        new_state["E_heat"] = self.par.fact_P_Loss_P_heat * new_state["E_loss"]
+        new_state["P_heat"] = self.par.fact_P_Loss_P_heat * new_state["P_loss"]
 
         return new_state
 

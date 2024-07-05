@@ -40,7 +40,8 @@ Cracker = EConversionParams(
 
     # Secondary energy ratios
     # 1: input flow, 2: electric
-    split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio,
+    fact_P_Loss_P_heat=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -96,6 +97,7 @@ PEM = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0, 1],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    fact_P_Loss_P_heat=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -139,6 +141,7 @@ Purification = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    fact_P_Loss_P_heat=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -182,6 +185,7 @@ SOFC = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    fact_P_Loss_P_heat=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
