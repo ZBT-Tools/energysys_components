@@ -34,7 +34,9 @@ if __name__ == "__main__":
 
     for target in targets:
         # Initialization of component
-        C1 = EnergyConversion(component, copy.deepcopy(off_state), ts=1)
+        C1 = EnergyConversion(conv_par=component,
+                              ts=1,
+                              conv_state=copy.deepcopy(off_state))
         for t in range(ts):
             print(t)
             if t <= 90:

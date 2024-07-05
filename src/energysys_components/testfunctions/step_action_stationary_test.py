@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import copy
 import numpy as np
 from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
-from src.energysys_components.component_definition import PEM, Cracker
+from src.energysys_components.component_definition import PEM
 
 # Select component
 component = PEM
@@ -24,7 +24,9 @@ if __name__ == "__main__":
     for ct, t in enumerate(targets):
         # Initialization of component
         C1_state = EConversionState()
-        C1 = EnergyConversion(component, copy.deepcopy(C1_state), ts=1)
+        C1 = EnergyConversion(conv_par=component,
+                              ts=1,
+                              conv_state=copy.deepcopy(C1_state))
         C1.step_action_stationary(t)
         df1.loc[ct + 1] = vars(C1.state)
 
