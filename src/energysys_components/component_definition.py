@@ -41,7 +41,7 @@ Cracker = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio,
-    fact_P_Loss_P_heat=0,
+    fact_P_heat_P_Loss=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -97,7 +97,7 @@ PEM = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0, 1],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
-    fact_P_Loss_P_heat=0,
+    fact_P_heat_P_Loss=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -141,7 +141,7 @@ Purification = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
-    fact_P_Loss_P_heat=0,
+    fact_P_heat_P_Loss=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -185,7 +185,7 @@ SOFC = EConversionParams(
     # Secondary energy ratios
     # 1: input flow, 2: electric
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
-    fact_P_Loss_P_heat=0,
+    fact_P_heat_P_Loss=1,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
@@ -195,6 +195,54 @@ SOFC = EConversionParams(
     # Control Settins
     control_type_target=True,  # If true, input is load target
     norm_limits=[0, 1])
+
+Boiler = EConversionParams(
+    name="Boiler for Heat Generation",
+
+    # Energy Carrier Definitions
+    E_in_mc_type=NH3,
+    E_in_sd1_type=NH3,
+    E_in_sd2_type=Electr,
+    E_out_type=Electr,  # inhere arbitrary as E_out is 100% "Loss"
+
+    # Startup
+    t_preparation=1,  # Time until system is available [Minutes] ("idle")
+    E_preparation=1,  # Preparation Energy [kWh] (from cold to idle)
+    eta_preparation=50,  # [%] For calculation of losses below operation
+    # Load Operation
+    P_out_min_pct=10,  # Minimum operating load [% Load]
+    P_out_rated=2000,  # Rated Load [kW]
+
+    p_change_pos=100,  # [% output load/min]
+    p_change_neg=100,  # [% output load/min]
+
+    # Overall component efficiency
+    # Note: For Heat Generation Boiler
+    eta_pct=[[15, 100], [0, 0]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    # Main conversion path efficiency
+    eta_mc_pct=[[15, 100], [0, 0]],  # load
+    # dependend efficiency  [[load [%]],[efficiency [%]]]
+    E_loadchange=[[0, 15, 100], [0, 0, 0]],  # [[load [%]],[Energy [kWh]]]
+
+    # Shutdown
+    t_cooldown=1,  # Time until system cooled down [Minutes] ("idle to cool")
+
+    # Secondary energy ratios
+    # 1: input flow, 2: electric
+    # here arbitrary:
+    split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    # Here Boiler Efficiency:
+    fact_P_heat_P_Loss=0.85,
+
+    # Techno-economic
+    spec_invest_cost=200,  # [€/kW]
+    spec_volume=0.005,  # [m^^3/kW]
+    spec_mass=1,  # [kg/kW]
+
+    # Control Settins
+    control_type_target=True,  # If true, input is load target
+    norm_limits=[0, 1])
+
 
 Battery = StorageParams(E_cap=1,
                         E_out_type=Electr,

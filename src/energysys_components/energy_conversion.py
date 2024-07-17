@@ -48,7 +48,7 @@ class EConversionParams:
     split_P_sd: list  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
     # Factor useable heat in loss
-    fact_P_Loss_P_heat: float  # [0,1] Factor of useable heat energy in loss
+    fact_P_heat_P_Loss: float  # [0,1] Factor of useable heat energy in loss
 
     # Techno-economic
     spec_invest_cost: float  # [€/kW]
@@ -720,8 +720,8 @@ class EnergyConversion:
         new_state["E_in"] = new_state["E_in_mc"] + new_state["E_in_sd1"] + new_state["E_in_sd2"]
         new_state["P_in"] = new_state["P_in_mc"] + new_state["P_in_sd1"] + new_state["P_in_sd2"]
 
-        new_state["E_heat"] = self.par.fact_P_Loss_P_heat * new_state["E_loss"]
-        new_state["P_heat"] = self.par.fact_P_Loss_P_heat * new_state["P_loss"]
+        new_state["E_heat"] = self.par.fact_P_heat_P_Loss * new_state["E_loss"]
+        new_state["P_heat"] = self.par.fact_P_heat_P_Loss * new_state["P_loss"]
 
         return new_state
 
