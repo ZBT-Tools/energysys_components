@@ -3,7 +3,7 @@ Component definition examples
 """
 
 from energysys_components.energy_conversion import EConversionParams
-from energysys_components.energy_carrier import NH3, H2, Electr
+from energysys_components.energy_carrier import NH3, H2, Electr, Loss
 from energysys_components.energy_storage import StorageParams
 
 # Ammonia Cracker
@@ -203,7 +203,7 @@ Boiler = EConversionParams(
     E_in_mc_type=NH3,
     E_in_sd1_type=NH3,
     E_in_sd2_type=Electr,
-    E_out_type=Electr,  # inhere arbitrary as E_out is 100% "Loss"
+    E_out_type=Loss,  # inhere arbitrary as E_out is 100% "Loss"
 
     # Startup
     t_preparation=1,  # Time until system is available [Minutes] ("idle")
@@ -218,9 +218,9 @@ Boiler = EConversionParams(
 
     # Overall component efficiency
     # Note: For Heat Generation Boiler
-    eta_pct=[[15, 100], [0, 0]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
+    eta_pct=[[15, 100], [85, 85]],  # load dependend efficiency  [[load [%]],[efficiency [%]]]
     # Main conversion path efficiency
-    eta_mc_pct=[[15, 100], [0, 0]],  # load
+    eta_mc_pct=[[15, 100], [85, 85]],  # load
     # dependend efficiency  [[load [%]],[efficiency [%]]]
     E_loadchange=[[0, 15, 100], [0, 0, 0]],  # [[load [%]],[Energy [kWh]]]
 
@@ -231,8 +231,7 @@ Boiler = EConversionParams(
     # 1: input flow, 2: electric
     # here arbitrary:
     split_P_sd=[0.95, 0.05],  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
-    # Here Boiler Efficiency:
-    fact_P_heat_P_Loss=0.85,
+    fact_P_heat_P_Loss=0,
 
     # Techno-economic
     spec_invest_cost=200,  # [€/kW]
