@@ -27,7 +27,7 @@ class EConversionParams:
 
     # Load Operation
     P_out_min_pct: float  # Minimum operating load [% Load]
-    P_out_rated: int  # Rated Load [kW]
+    P_out_rated: float  # Rated Load [kW]
 
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
