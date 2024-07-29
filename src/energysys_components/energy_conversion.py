@@ -396,32 +396,28 @@ class EnergyConversion:
             pass
 
         else:
-            hypothetical_state = dict()
-            hypothetical_state["E_in"] = new_state_dict["E_in"]
-            hypothetical_state["E_in_mc"] = new_state_dict["E_in_mc"]
-            hypothetical_state["E_in_sd1"] = new_state_dict["E_in_sd1"]
-            hypothetical_state["E_in_sd2"] = new_state_dict["E_in_sd2"]
-            hypothetical_state["E_out"] = new_state_dict["E_out"]
-            hypothetical_state["E_loss"] = new_state_dict["E_loss"]
-            hypothetical_state["E_heat"] = new_state_dict["E_heat"]
-            hypothetical_state["E_balance"] = new_state_dict["E_balance"]
+            hypoth_state = EConversionState(
+                E_in_mc=new_state_dict["E_in_mc"],
+                P_out=new_state_dict["P_out"],
+                eta_pct=eta_1_pct,
+                P_in_mc=new_state_dict["P_in_mc"],
+                heatup_pct=heatup_1_pct,
+                eta_mc_pct=eta_mc_1_pct,
+                P_in_sd1=new_state_dict["P_in_sd1"],
+                P_in_sd2=new_state_dict["P_in_sd2"],
+                E_in_sd1=new_state_dict["E_in_sd1"],
+                E_in_sd2=new_state_dict["E_in_sd2"],
+                P_in=new_state_dict["P_in"],
+                E_out=new_state_dict["E_out"],
+                E_in=new_state_dict["E_in"],
+                P_heat=new_state_dict["P_heat"],
+                P_loss=new_state_dict["P_loss"],
+                E_balance=new_state_dict["E_balance"],
+                E_heat=new_state_dict["E_balance"],
+                E_loss=new_state_dict["E_loss"])
 
-            hypothetical_state["P_in"] = new_state_dict["P_in"]
-            hypothetical_state["P_in_mc"] = new_state_dict["P_in_mc"]
-            hypothetical_state["P_in_sd1"] = new_state_dict["P_in_sd1"]
-            hypothetical_state["P_in_sd2"] = new_state_dict["P_in_sd2"]
-            hypothetical_state["P_out"] = new_state_dict["P_out"]
-            hypothetical_state["P_loss"] = new_state_dict["P_loss"]
-            hypothetical_state["P_heat"] = new_state_dict["P_heat"]
 
-            hypothetical_state["heatup_pct"] = heatup_1_pct
-            hypothetical_state["state_eta_pct"] = eta_1_pct
-            hypothetical_state["state_eta_mc_pct"] = eta_mc_1_pct
-
-            # hypothetical_state["opex_Eur"] = new_state_dict["opex_Eur"]
-            # hypothetical_state["errorcode"] = new_state_dict["errorcode"]
-
-            return hypothetical_state
+            return hypoth_state
 
     def _calc_P_change(self, P_out_target_pct):
         """
