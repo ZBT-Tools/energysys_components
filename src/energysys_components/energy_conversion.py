@@ -255,8 +255,6 @@ class EnergyConversion:
         # :param debug:       bool flag, not implemented yet
         """
 
-        # IDEA: Check if dataclass object conv_par can be frozen here
-
         self.par = conv_par
         self.ts = ts
         cop = copy.deepcopy(conv_state)
