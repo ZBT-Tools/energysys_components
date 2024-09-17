@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Kuschel"
-  given-names: "FlorianE"
+  given-names: "Florian"
 title: "energysys_components"
 version: 1.0.0
 date-released: 2024-01-10

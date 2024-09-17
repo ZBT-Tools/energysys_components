@@ -1,33 +1,43 @@
 
-![internet_in_farbe_en](https://github.com/ZBT-Tools/energysys_components/assets/94350939/8c4fa2ea-d182-44e0-a0e2-26d226177063)
-
 # energysys_components
 
 ## Description
-Energy conversion component class with quasi-static state change methods.
+Energy conversion component class with transient state change methods.
 
 A Python-based simulation tool to analyse energy conversion systems in an early concept phase, where energy conversion components are described by technical and economic specifications in form of surrogate models. These models provide uniform, simplified descriptions of dynamic behaviour such as start-up, heat-up and load change in temporal and energetic terms. Exemplary components include fuel cells, batteries and gas reformers. 
 
 Multiple different components can be linked via enthalpy flow to form a single dependent energy conversion path. A system can be comprised of several different paths.
+
+System topology generation and control algorithms are published in:
+
 https://github.com/ZBT-Tools/energysys_control
 
+### Unified 0D Component Model
+#### General Description
+<img src="docs/img/readme_component.png" width="400">
 
-Parameter of EnergyConversion-objects, initialized with EConversionParams (DataClass):
+#### Examples
 
-![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/ba2d3632-601c-44ab-ae52-55afa8a59e73)
+<img alt="img.png" src="docs/img/readme_component_examples.png" width="400"/>
+
+#### Input and output definition
+
+<img alt="img.png" src="docs/img/readme_component_input.png" width="440"/>
+
+#### Parameter definition
+
+<img alt="img.png" src="docs/img/readme_component_parameter.png" width="450"/>
+
+#### State definition
+
+<img alt="img.png" src="docs/img/readme_component_state.png" width="300"/>
+
+#### Example 
+
+<img alt="img.png" src="docs/img/readme_component_t1.png"/>
+<img alt="img_1.png" src="docs/img/readme_component_t2.png"/>
+
+---
 
 
-State of EnergyConversion-objects, described with EConversionState-object (DataClass):
-
-![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/8935b8e7-9422-4764-add9-84a66f217b6c)
-
-
-![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/42a7fe7a-4aef-4df6-8b4d-f8af7aa51c4f)
-
-
-
-## Example 
-
-![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/4dac6e90-344b-4f3d-aa67-7cf2a9963733)
-
-![image](https://github.com/ZBT-Tools/energysys_components/assets/94350939/403d5eee-5da4-4c14-bd27-46b8c0b7b5de)
+<img src="docs/img/bmbf.png" width="200">
