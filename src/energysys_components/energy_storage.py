@@ -1,16 +1,16 @@
 """
-Energy Storage, Battery System
+Unified 0D energy storage component class
 """
+import logging
 from dataclasses import dataclass
 import copy
-
 from energysys_components.energy_carrier import ECarrier
 
 
 @dataclass(frozen=False)
-class StorageParams:
+class ESCParameter:
     """
-    Definition of energy storage component
+    Parameter of energy storage component
     """
     name: str
 
@@ -20,60 +20,62 @@ class StorageParams:
     E_in_sd2_type: ECarrier
     E_out_type: ECarrier
 
-    eta: float  # Const. or output dependend efficiency [0-1]
-    C_rate_charge: float  # This is the charge per hour rate –
+    eta: float  # Const. or output dependend efficiency [-]
+    C_rate: float  # This is the charge per hour rate –
     # one divided by the number of hours to charge the battery fully.
 
     spec_invest_cost: float  # [€/kWh]
     spec_volume: float  # [m^^3/kWh]
     spec_mass: float  # [kg/kWh]
+
     E_cap: float = 0  # Capacity of storage component [kWh]
     autoIncrease: bool = True  # Allows component to increase capacity on the fly during calculation
 
 
 @dataclass(frozen=False)
-class StorageState:
+class ESCState:
     """
-    To be implemented
+    State definition of energy storage component (ESC)
     """
-    # Mean input power
+    # Input
     P_in: float = 0  # [kW]
     E_in: float = 0  # [kWh]
-    # Mean output power
+
+    # Output
     P_out: float = 0  # [kW]
     E_out: float = 0  # [kWh]
-    # Mean loss
+
+    # Loss
     P_loss: float = 0  # [kW]
     E_loss: float = 0  # [kWh]
 
     SoC: float = 1  # State of charge 0-1, 0: empty, 1: full
     E_cap_incr: float = 0  # Required capacity increase during run
 
-    errorcode: int = 0  # for passing different errors
 
-
-class EnergyStorage:
+class EnergyStorageComponent:
     """
-    Energy storage class
+    State definition of energy storage component (ESC)
     """
 
     def __init__(self,
-                 stor_par: StorageParams,
-                 ts,
-                 stor_state: StorageState = StorageState()):
+                 par: ESCParameter,
+                 ts: int,
+                 state: ESCState = ESCState()):
         """
-        :param stor_par: StorageParams object
-        :param stor_state: StorageState object
+        :param par: ESCParams object
+        :param state: ESCState object
         :param ts: timestep [min]
         """
 
-        self.par = stor_par
+        self.par = par
         self.ts = ts
-        cop = copy.deepcopy(stor_state)
-        self.state_initial = cop
-        self.state = stor_state
+        self.state_initial = copy.deepcopy(state)
+        self.state = state
+        self.logger = logging.getLogger(__name__)
 
-    def step_action(self, E_req: float):
+    def step_action(self,
+                    E_req: float):
         """
         Update of storage component
 
@@ -86,39 +88,54 @@ class EnergyStorage:
 
         if E_req <= 0:  # -> bat. discharge
             E_SoC_1 = E_SoC_0 + E_req
-            self.state.E_out = - E_req
-            self.state.P_out = - E_req / (self.ts / 60)
-            self.state.E_in = 0
-            self.state.P_in = 0
+            E_out = - E_req
+            P_out = - E_req / (self.ts / 60)
+            E_in = 0
+            P_in = 0
+            E_loss = 0
+            P_loss = 0
         else:  # ... charge with efficiency
             E_SoC_1 = E_SoC_0 + self.par.eta * E_req
-            self.state.E_out = 0
-            self.state.P_out = 0
-            self.state.E_in = E_req
-            self.state.P_in = E_req / (self.ts / 60)
+            E_loss = (1 - self.par.eta) * E_req
+            E_out = 0
+            P_out = 0
+            E_in = E_req
+            P_in = E_req / (self.ts / 60)
+            P_loss = E_loss / (self.ts / 60)
 
-        # If required, update capacity 'on the fly' ....
-        if E_SoC_1 < 0:  # ... if SoC < 0
+        # If allowed and required, update capacity
+        if E_SoC_1 < 0:
             if self.par.autoIncrease:
                 adder = -1 * E_SoC_1
                 self.par.E_cap += adder
-                self.state.E_cap_incr += adder
+                E_cap_incr = self.state.E_cap_incr + adder
                 E_SoC_1 = 0
             else:
                 raise Exception("Battery overflow")
 
-        elif E_SoC_1 > self.par.E_cap:  # ... if SoC > 1
+        elif E_SoC_1 > self.par.E_cap:
             if self.par.autoIncrease:
                 adder = E_SoC_1 - self.par.E_cap
                 self.par.E_cap += adder
-                self.state.E_cap_incr += adder
+                E_cap_incr = self.state.E_cap_incr + adder
             else:
                 raise Exception("Battery overflow")
         else:
-            pass
+            E_cap_incr = 0
 
-        self.state.SoC = E_SoC_1 / self.par.E_cap
+        soc = E_SoC_1 / self.par.E_cap
 
+        # Update state
+        state_1 = ESCState(E_cap_incr=E_cap_incr,
+                           E_in=E_in,
+                           E_out=E_out,
+                           E_loss=E_loss,
+                           SoC=soc,
+                           P_in=P_in,
+                           P_loss=P_loss,
+                           P_out=P_out)
+
+        self.state = state_1
         pass
 
     def reset(self,

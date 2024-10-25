@@ -4,13 +4,12 @@ Functions for generation of component Sankey diagram
 
 import plotly.graph_objects as go
 import pandas as pd
+from energysys_components.example.component_definition import PEM
+from energysys_components.example.energy_carrier import Loss
+from energysys_components.energy_conversion import ECCParameter
 
-from energysys_components.component_definition import PEM
-from energysys_components.energy_carrier import Loss
-from energysys_components.energy_conversion import EConversionParams
 
-
-def sankey_component_input_dicts(res: pd.Series, comp: EConversionParams) -> (dict, dict):
+def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, dict):
     """
     Creates input dicts for plotly dash sankey diagram
 
@@ -92,7 +91,7 @@ def sankey_component_input_dicts(res: pd.Series, comp: EConversionParams) -> (di
 
 if __name__ == "__main__":
     # Create dummy results
-    comp = PEM
+    component = PEM
 
     # Dummy result data
     d = {'P_in_mc': 1070.597827,
@@ -118,6 +117,6 @@ if __name__ == "__main__":
         link=data_link)])
 
     fig.update_layout(
-        title_text=f"Simple component sankey diagram of {comp.name}",
+        title_text=f"Simple component sankey diagram of {component.name}",
         font_size=10)
     fig.show()

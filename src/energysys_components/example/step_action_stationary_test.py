@@ -2,31 +2,31 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 import numpy as np
-from src.energysys_components.energy_conversion import EConversionState, EnergyConversion
-from src.energysys_components.component_definition import PEM
+from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
+from energysys_components.example.component_definition import PEM
 
 # Select component
 component = PEM
 
-off_state = EConversionState()
-full_load_state = EConversionState(P_in=2000,
-                                   heatup_pct=100)
+off_state = ECCState()
+full_load_state = ECCState(P_in=2000,
+                           heatup_pct=100)
 
 if __name__ == "__main__":
     # Result DataFrame Initialization
-    state_parms = [a for a in dir(EConversionState()) if not a.startswith('__')]
+    state_parms = [a for a in dir(ECCState()) if not a.startswith('__')]
     df1 = pd.DataFrame(columns=state_parms)
-    df1.loc[0] = vars(EConversionState())
+    df1.loc[0] = vars(ECCState())
 
     # Run different stationary cases for target output load
-    targets = np.linspace(component.P_out_min_pct / 100, 1., 100)
+    targets = np.linspace(component.P_out_min_rel / 100, 1., 100)
 
     for ct, t in enumerate(targets):
         # Initialization of component
-        C1_state = EConversionState()
-        C1 = EnergyConversion(conv_par=component,
-                              ts=1,
-                              conv_state=copy.deepcopy(C1_state))
+        C1_state = ECCState()
+        C1 = EnergyConversionComponent(par=component,
+                                       ts=1,
+                                       state=copy.deepcopy(C1_state))
         C1.step_action_stationary(t)
         df1.loc[ct + 1] = vars(C1.state)
 
