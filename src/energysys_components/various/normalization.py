@@ -1,16 +1,20 @@
-def norm(val, prop):
+def norm(val_r: float,
+         norm_dict: dict):
     """
-    input string uses self.prop dict for limits
-    prop= {"n":[min,max], "r":[min,max]}
+    Normalize real value of real range to normalized value of normalized range.
+    norm_dict = {"n":[min,max], "r":[min,max]}
     """
-    return (prop['n'][1] - prop['n'][0]) * (val - prop['r'][0]) / \
-           (prop['r'][1] - prop['r'][0]) + prop['n'][0]
+    return (norm_dict['n'][1] - norm_dict['n'][0]) * (val_r - norm_dict['r'][0]) / \
+           (norm_dict['r'][1] - norm_dict['r'][0]) + norm_dict['n'][0]
 
 
-def denorm(val, prop):
+def denorm(val_n: float,
+           norm_dict: dict):
     """
+    Denormalize normalized value of normalized range to denormalized value
+     of real range.
     input dict structure
-    prop= {"n":[min,max], "r":[min,max]}
+    norm_dict = {"n":[min,max], "r":[min,max]}
     """
-    return (val - prop['n'][0]) / (prop['n'][1] - prop['n'][0]) * \
-           (prop['r'][1] - prop['r'][0]) + prop['r'][0]
+    return (val_n - norm_dict['n'][0]) / (norm_dict['n'][1] - norm_dict['n'][0]) * \
+           (norm_dict['r'][1] - norm_dict['r'][0]) + norm_dict['r'][0]

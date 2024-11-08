@@ -39,5 +39,9 @@ https://github.com/ZBT-Tools/energysys_control
 
 ---
 
+#### Installation 
+
+`pip install -e .\energysys_components\`
+---
 
 <img src="docs/img/bmbf.png" width="200">

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "energysys_components"
-version = "0.0.1"
+version = "1.0."
 authors = [
   { name="Florian Kuschel", email="f.kuschel@zbt.de" },
 ]
