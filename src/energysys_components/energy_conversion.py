@@ -174,6 +174,9 @@ class ECCState:
     State definition of energy conversion component (ECC)
     """
 
+    # Bulk
+    E_bulk: float = 0  # [kWh]
+
     # Input
     P_in: float = 0  # [kW]
     E_in: float = 0  # [kWh]
@@ -202,10 +205,15 @@ class ECCState:
     P_heat: float = 0  # [kW]
     E_heat: float = 0  # [kWh]
 
+    # Operation
+    # f_operation: float = 1  # [-]
     heatup: float = 0  # [-]
     eta: float = 0  # [-]
     eta_mc: float = 0  # [-]
     opex_Eur: float = 0  # [€]
+
+    # Health
+    SoH: float = 1  # [-]
 
     # Convergence
     E_balance: float = 0  # [kWh]
@@ -331,7 +339,8 @@ class EnergyConversionComponent:
                            heatup=heatup_1,
                            eta=eta_1,
                            eta_mc=eta_mc_1,
-                           opex_Eur=0)
+                           opex_Eur=0,
+                           SoH=1)
 
         if not hypothetical_step:
             self.state = state_1
@@ -721,6 +730,22 @@ class EnergyConversionComponent:
         else:
             raise Exception("Error in state change.")
 
+        # Bulk Energy
+        # ----------------------------------------------------------------
+        E_bulk_heatup = heatup_1 * self.par.E_start_bulk
+        if heatup_1 ==1:
+            E_bulk_op = self.par.E_in_loadchange_ip(P_out_rel_1)
+        else:
+            E_bulk_op = 0
+
+        E_bulk = E_bulk_heatup + E_bulk_op
+
+        dE_bulk_heatup = (heatup_1 - heatup_0) * self.par.E_start_bulk
+        dE_bulk_loadchange = (
+                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_1)) -
+                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_0)))
+        state_dict["E_bulk"] = E_bulk
+
         # Balances
         # ----------------------------------------------------------------
         tol = 1e-5
@@ -735,18 +760,12 @@ class EnergyConversionComponent:
             self.logger.warning(f"P_in deviation! Total: {sd['P_in']},"
                                 f' splitted: {sd["P_in_mc"] + sd["P_in_sd1"] + sd["P_in_sd2"]}')
 
-        dE_bulk_heatup = (heatup_1 - heatup_0) * self.par.E_start_bulk
-        dE_bulk_loadchange = (
-                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_1)) -
-                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_0)))
-
         E_balance = (sd["E_in"] - sd["E_out"] - sd["E_loss"]) - (
                 dE_bulk_heatup + dE_bulk_loadchange)
 
         if abs(E_balance) > tol:
             self.logger.warning(f"Energy Balance deviation! {E_balance}")
 
-        # Return state
         state_dict["E_balance"] = E_balance
 
         return state_dict
