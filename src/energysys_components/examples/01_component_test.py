@@ -5,48 +5,48 @@ Simple EnergyConversionComponent()-Tests
 import pandas as pd
 import plotly.graph_objects as go
 import copy
+
+from energysys_components.simulation import Simulation
 from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
 from energysys_components.examples.example_component_definition import SOFC
 
-
 if __name__ == "__main__":
     # Example Definition
+    # ------------------
     component = SOFC
-    off_state = ECCState()
-
-    # Result DataFrame Initialization
-    state_attr = [a for a in dir(ECCState()) if not a.startswith('__')]
-    df1 = pd.DataFrame(columns=state_attr)
-    # Initial state
-    df1.loc[0] = vars(ECCState())
-
-    # Run different stationary cases for target output load (relative)
+    # Load profile
+    ts = 1
+    n_ts = int(180 / ts)  # number of time steps
     targets = [0,
                0.5 * component.P_out_min_rel / 100,
                component.P_out_min_rel / 100,
                0.5,
-               1
-               ]
-
-    ts = 1  # min
-    n_ts = int(180 / ts)  # number of time steps
-
-    for target in targets:
-        C1 = EnergyConversionComponent(par=component,
-                                       ts=ts,
-                                       state=copy.deepcopy(off_state))
+               1]
+    loadprofiles = []
+    for targ in targets:
+        lp = []
         for t in range(n_ts):
             if t <= n_ts / 2:
-                C1.step_action(target)
+                lp.append(targ)
             else:
-                C1.step_action(0)
-            df1.loc[t + 1] = vars(C1.state)
+                lp.append(0)
+        loadprofiles.append(lp)
 
-        # Create traces
+    # Run simulations
+    for lp in loadprofiles:
+
+        sim = Simulation(component_parameter=component,
+                         timestep=1,
+                         loadprofile=lp)
+
+        sim.run()
+
+        # Plot results
         fig = go.Figure()
-        for cl in df1.columns:
-            fig.add_trace(go.Scatter(x=df1.index[:], y=df1[cl][:],
+        for cl in sim.results.columns:
+            fig.add_trace(go.Scatter(x=sim.results.index[:],
+                                     y=sim.results[cl][:],
                                      mode='lines',
                                      name=cl))
-            fig.update_layout(title=f"Target,rel: {target}")
+            fig.update_layout(title=f"Target,rel: {sim.loadprofile[0]}")
         fig.show()

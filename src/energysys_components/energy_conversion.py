@@ -241,6 +241,8 @@ class EnergyConversionComponent:
         :param ts:          timestep [min]
         # :param debug:     bool, not implemented yet
         """
+        if state is None:
+            state: ECCState = ECCState()
 
         self.par = par
         self.ts = ts
