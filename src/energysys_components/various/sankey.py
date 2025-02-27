@@ -4,8 +4,8 @@ Functions for generation of component Sankey diagram
 
 import plotly.graph_objects as go
 import pandas as pd
-from energysys_components.examples.component_definition import PEM
-from energysys_components.examples.energy_carrier import Loss
+from energysys_components.examples.example_component_definition import PEM
+from energysys_components.examples.example_energy_carrier import Loss
 from energysys_components.energy_conversion import ECCParameter
 
 

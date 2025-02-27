@@ -2,7 +2,7 @@
 Energy Conversion Component (ECC) and Energy Storage Component (ESC) definition examples
 """
 from energysys_components.energy_conversion import ECCParameter
-from energysys_components.examples.energy_carrier import NH3, H2, Electr, Loss
+from energysys_components.examples.example_energy_carrier import NH3, H2, Electr, Loss
 from energysys_components.energy_storage import ESCParameter
 
 # Ammonia Cracker

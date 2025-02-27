@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import copy
 import numpy as np
 from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
-from energysys_components.examples.component_definition import PEM, SOFC
+from energysys_components.examples.example_component_definition import PEM, SOFC
 
 # Select component
 component = PEM

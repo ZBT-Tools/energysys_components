@@ -6,20 +6,21 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
-from energysys_components.examples.component_definition import SOFC
+from energysys_components.examples.example_component_definition import SOFC
 
-# Example Definition
-component = SOFC
-off_state = ECCState()
 
 if __name__ == "__main__":
+    # Example Definition
+    component = SOFC
+    off_state = ECCState()
+
     # Result DataFrame Initialization
     state_attr = [a for a in dir(ECCState()) if not a.startswith('__')]
     df1 = pd.DataFrame(columns=state_attr)
     # Initial state
     df1.loc[0] = vars(ECCState())
 
-    # Run different stationary cases for target output load
+    # Run different stationary cases for target output load (relative)
     targets = [0,
                0.5 * component.P_out_min_rel / 100,
                component.P_out_min_rel / 100,
@@ -35,7 +36,6 @@ if __name__ == "__main__":
                                        ts=ts,
                                        state=copy.deepcopy(off_state))
         for t in range(n_ts):
-            # print(t)
             if t <= n_ts / 2:
                 C1.step_action(target)
             else:
