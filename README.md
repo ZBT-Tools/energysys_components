@@ -45,3 +45,4 @@ https://github.com/ZBT-Tools/energysys_control
 ---
 
 <img src="docs/img/bmbf.png" width="200">
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/026c185a-aad0-4cad-82f3-994950becb6c" />
