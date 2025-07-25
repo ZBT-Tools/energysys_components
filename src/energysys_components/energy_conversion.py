@@ -34,13 +34,13 @@ class ECCParameter:
     p_change_pos: float  # [% output load/min]
     p_change_neg: float  # [% output load/min]
 
-    E_loadchange: list  # load change dependend additional required energy
+    E_loadchange: list  # load change dependent additional required energy
     # (examples: due to SOFC stack temperature increase)  [[load [-]],[Energy [kWh]]]
 
     # Overall component efficiency
-    eta: list  # load dependend efficiency  [[load [-]],[efficiency [-]]]
+    eta: list  # load dependent efficiency  [[load [-]],[efficiency [-]]]
     # Main conversion path efficiency
-    eta_mc: list  # load dependend efficiency  [[load [-]],[efficiency [-]]]
+    eta_mc: list  # load dependent efficiency  [[load [-]],[efficiency [-]]]
 
     # Shutdown
     t_cooldown: float  # Time until system cooled down [Minutes] ("idle to cool")
@@ -49,8 +49,8 @@ class ECCParameter:
     # 1: input flow, 2: electric
     split_P_sd: list  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
 
-    # Factor useable heat in loss
-    fact_P_heat_P_Loss: float  # [0,1] Factor of useable heat energy in loss
+    # Factor usable heat in loss
+    fact_P_heat_P_Loss: float  # [0,1] Factor of usable heat energy in loss
 
     # Techno-economic
     spec_invest_cost: float  # [€/kW]
@@ -84,43 +84,43 @@ class ECCParameter:
         # Efficiency calculations - overall component
         # ---------------------------------------------------------
         # Interpolator eta = f(output power rel [-]) [-]
-        self.eta_ip = interpolate.interp1d(self.eta[0],
-                                           self.eta[1],
-                                           kind='linear',
-                                           bounds_error=False,
-                                           fill_value=(self.eta[1][0],
+        self.eta_ip_P_out_rel = interpolate.interp1d(self.eta[0],
+                                                     self.eta[1],
+                                                     kind='linear',
+                                                     bounds_error=False,
+                                                     fill_value=(self.eta[1][0],
                                                        self.eta[1][-1]))
 
         # Interpolator eta = f(output power [kW]) [-]
-        self.eta_kW_ip = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
-                                              self.eta[1],
-                                              kind='linear',
-                                              bounds_error=False,
-                                              fill_value=(self.eta[1][0],
+        self.eta_ip_P_out = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
+                                                 self.eta[1],
+                                                 kind='linear',
+                                                 bounds_error=False,
+                                                 fill_value=(self.eta[1][0],
                                                           self.eta[1][-1]))
 
         # Interpolator eta = f(input load [kW]) [-]
-        list_P_in_kW = [e * self.P_out_rated / self.eta_ip(e) for e in self.eta[0]]
-        self.eta_P_in_kW_ip = interpolate.interp1d(list_P_in_kW,
-                                                   self.eta[1],
-                                                   kind='linear',
-                                                   bounds_error=False,
-                                                   fill_value=(self.eta[1][0],
+        list_P_in_kW = [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]]
+        self.eta_ip_P_in = interpolate.interp1d(list_P_in_kW,
+                                                self.eta[1],
+                                                kind='linear',
+                                                bounds_error=False,
+                                                fill_value=(self.eta[1][0],
                                                                self.eta[1][-1]))
 
         # Efficiency calculations - main conversion path
         # ---------------------------------------------------------
 
         # Interpolator eta_mc = f(output load [-]) [-]
-        self.eta_mc_ip = interpolate.interp1d(self.eta_mc[0],
-                                              self.eta_mc[1],
-                                              kind='linear',
-                                              bounds_error=False,
-                                              fill_value=(self.eta_mc[1][0],
+        self.eta_mc_ip_P_out_rel = interpolate.interp1d(self.eta_mc[0],
+                                                        self.eta_mc[1],
+                                                        kind='linear',
+                                                        bounds_error=False,
+                                                        fill_value=(self.eta_mc[1][0],
                                                           self.eta_mc[1][-1]))
 
         # Interpolator eta_mc = f(output load [kW]) [-]
-        self.eta_mc_kW_ip = interpolate.interp1d(
+        self.eta_mc_ip_P_out = interpolate.interp1d(
             [e * self.P_out_rated for e in self.eta_mc[0]],
             self.eta_mc[1],
             kind='linear',
@@ -129,12 +129,12 @@ class ECCParameter:
                         self.eta_mc[1][-1]))
 
         # Interpolator eta_mc = f(input load [kW]) [-]
-        list_P_in_mc_kW = [e * self.P_out_rated / self.eta_mc_ip(e) for e in self.eta_mc[0]]
-        self.eta_mc_P_in_mc_kW_ip = interpolate.interp1d(list_P_in_mc_kW,
-                                                         self.eta_mc[1],
-                                                         kind='linear',
-                                                         bounds_error=False,
-                                                         fill_value=(self.eta_mc[1][0],
+        list_P_in_mc_kW = [e * self.P_out_rated / self.eta_mc_ip_P_out_rel(e) for e in self.eta_mc[0]]
+        self.eta_mc_ip_P_in_mc = interpolate.interp1d(list_P_in_mc_kW,
+                                                      self.eta_mc[1],
+                                                      kind='linear',
+                                                      bounds_error=False,
+                                                      fill_value=(self.eta_mc[1][0],
                                                                      self.eta_mc[1][-1]))
 
         # Load change energy interpolator Energy_state=f(Load [%])
@@ -150,19 +150,17 @@ class ECCParameter:
         # ---------------------------------------------------------
         # https://stackoverflow.com/questions/2474015/
         # "Getting the index of the returned max or min item using max()/min() on a list"
-        self.P_out_etamax_rel = self.eta[0][max(range(len(self.eta[1])),
-                                                key=self.eta[1].__getitem__)]
-
         self.P_out_min = self.P_out_min_rel * self.P_out_rated
+        self.P_out_etamax_rel = self.eta[0][max(range(len(self.eta[1])), key=self.eta[1].__getitem__)]
         self.P_out_etamax = self.P_out_etamax_rel * self.P_out_rated
 
-        self.P_in_min = self.P_out_min / self.eta_ip(self.P_out_min_rel)
-        self.P_in_max = self.P_out_rated / self.eta_ip(1)
-        self.P_in_etamax = self.P_out_etamax / self.eta_ip(self.P_out_etamax)
+        self.P_in_min = self.P_out_min / self.eta_ip_P_out_rel(self.P_out_min_rel)
+        self.P_in_max = self.P_out_rated / self.eta_ip_P_out_rel(1)
+        self.P_in_etamax = self.P_out_etamax / self.eta_ip_P_out_rel(self.P_out_etamax)
 
-        self.P_in_mc_min = self.P_out_min / self.eta_mc_ip(self.P_out_min_rel)
-        self.P_in_mc_max = self.P_out_rated / self.eta_mc_ip(1)
-        self.P_in_mc_etamax = self.P_out_etamax / self.eta_mc_ip(self.P_out_etamax_rel)
+        self.P_in_mc_min = self.P_out_min / self.eta_mc_ip_P_out_rel(self.P_out_min_rel)
+        self.P_in_mc_max = self.P_out_rated / self.eta_mc_ip_P_out_rel(1)
+        self.P_in_mc_etamax = self.P_out_etamax / self.eta_mc_ip_P_out_rel(self.P_out_etamax_rel)
 
         self.split_P_sd1 = self.split_P_sd[0] / sum(self.split_P_sd)
         self.split_P_sd2 = self.split_P_sd[1] / sum(self.split_P_sd)
@@ -174,22 +172,22 @@ class ECCState:
     State definition of energy conversion component (ECC)
     """
 
-    # Bulk
+    # Bulk | Internal Energy
     E_bulk: float = 0  # [kWh]
 
     # Input
     P_in: float = 0  # [kW]
     E_in: float = 0  # [kWh]
 
-    # Input portion main conversion
+    # Input, portion main conversion
     P_in_mc: float = 0  # [kW]
     E_in_mc: float = 0  # [kWh]
 
-    # Input portion sencondary 1
+    # Input, portion secondary 1
     P_in_sd1: float = 0  # [kW]
     E_in_sd1: float = 0  # [kWh]
 
-    # Input portion sencondary 2
+    # Input, portion secondary 2
     P_in_sd2: float = 0  # [kW]
     E_in_sd2: float = 0  # [kWh]
 
@@ -292,7 +290,7 @@ class EnergyConversionComponent:
 
         """
 
-        # 1.) Application of load change
+        # 1.) Load change
         # ---------------------------------------------------------
         if not contr_type == "target":
             raise Exception('No up-to-date implementation of this contr_val type.')
@@ -315,7 +313,7 @@ class EnergyConversionComponent:
             P_out_rel_targ = denorm(contr_val, {'n': [contr_lim_min, contr_lim_max],
                                                 'r': [0, 1]})
 
-        # Calculation of new heatup and output power
+        # Calculation of new heatup state, output power and time in operation
         P_out_rel_1, heatup_1, t_op = self._calc_P_change(P_out_rel_targ=P_out_rel_targ)
 
         # 2.) Efficiency calculation
@@ -324,8 +322,8 @@ class EnergyConversionComponent:
             eta_1 = self.par.eta_start
             eta_mc_1 = 1
         else:
-            eta_1 = self.par.eta_ip(P_out_rel_1).item(0)
-            eta_mc_1 = self.par.eta_mc_ip(P_out_rel_1).item(0)
+            eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1).item(0)
+            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1).item(0)
 
         # 3.) State change calculation
         # ---------------------------------------------------------
@@ -338,15 +336,12 @@ class EnergyConversionComponent:
         # 4.) Update state
         # ---------------------------------------------------------
         state_1 = ECCState(**state_1_dict,
-                           heatup=heatup_1,
-                           eta=eta_1,
-                           eta_mc=eta_mc_1,
                            opex_Eur=0,
                            SoH=1)
 
         if not hypothetical_step:
             self.state = state_1
-            pass
+            return None
 
         else:
             return state_1
@@ -691,9 +686,9 @@ class EnergyConversionComponent:
                     P_out_rel_1=self.par.P_out_min_rel,
                     dt=t_op,
                     eta_0=self.state.eta,
-                    eta_1=self.par.eta_ip(self.par.P_out_min_rel),
+                    eta_1=self.par.eta_ip_P_out_rel(self.par.P_out_min_rel),
                     eta_mc_0=self.state.eta_mc,
-                    eta_mc_1=self.par.eta_mc_ip(self.par.P_out_min_rel),
+                    eta_mc_1=self.par.eta_mc_ip_P_out_rel(self.par.P_out_min_rel),
                     include_power=False)
             else:
                 state_dict_load = dict()
@@ -720,9 +715,9 @@ class EnergyConversionComponent:
                 P_out_rel_0=self.par.P_out_min_rel,
                 P_out_rel_1=P_out_rel_1,
                 dt=t_op,
-                eta_0=self.par.eta_ip(self.par.P_out_min_rel),
+                eta_0=self.par.eta_ip_P_out_rel(self.par.P_out_min_rel),
                 eta_1=eta_1,
-                eta_mc_0=self.par.eta_mc_ip(self.par.P_out_min_rel),
+                eta_mc_0=self.par.eta_mc_ip_P_out_rel(self.par.P_out_min_rel),
                 eta_mc_1=eta_mc_1,
                 include_power=True)
 
@@ -769,6 +764,11 @@ class EnergyConversionComponent:
             self.logger.warning(f"Energy Balance deviation! {E_balance}")
 
         state_dict["E_balance"] = E_balance
+        state_dict["heatup"]=heatup_1
+        state_dict["eta"]=eta_1
+        state_dict["eta_mc"] = eta_mc_1
+
+
 
         return state_dict
 
@@ -808,7 +808,7 @@ class EnergyConversionComponent:
             raise Exception("Target not reached.")
         pass
 
-    def P_out_for_P_in_mc_target(self, P_in_mc_target: float) -> float:
+    def get_P_out_for_P_in_mc_target(self, P_in_mc_target: float) -> float:
         """
         Calculation of contr_val for step_action()-method equivalent to
         given main conversion input load requirement [kW]
@@ -824,22 +824,12 @@ class EnergyConversionComponent:
         elif P_in_mc_target > self.par.P_in_mc_max:
             raise Exception("P_in_mc_target > self.par.P_in_mc_max")
         else:
-            P_out_rel = (P_in_mc_target * self.par.eta_mc_P_in_mc_kW_ip(P_in_mc_target) /
+            P_out_rel = (P_in_mc_target * self.par.eta_mc_ip_P_in_mc(P_in_mc_target) /
                          self.par.P_out_rated)
 
             return P_out_rel
 
-    # def action_for_E_in_mc_target(self, input_load: float) -> float:
-    #     """
-    #         Calculation of contr_val (= load target [0,1]) for step_action()-Method equivalent to
-    #         given main conversion(!) input energy requirement [kWh]
-    #
-    #         To be implemented
-    #         """
-    #     # To be implemented
-    #     ...
-
-    def P_in_mc_from_P_out(self, P_out_kW: float) -> float:
+    def get_P_in_mc_from_P_out(self, P_out_kW: float) -> float:
         """
         Calculation of main conversion input power [kW].
         Only to be used for load operation, throws error if below minimum output load
@@ -853,7 +843,7 @@ class EnergyConversionComponent:
         elif P_out_kW > self.par.P_out_rated:
             raise Exception("P_out_kW > self.par.P_out_rated")
         else:
-            P_in_mc = P_out_kW / self.par.eta_mc_kW_ip(P_out_kW)
+            P_in_mc = P_out_kW / self.par.eta_mc_ip_P_out(P_out_kW)
             return P_in_mc
 
     def reset(self):

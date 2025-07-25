@@ -8,15 +8,15 @@ NH3 = ECarrier(
     name="Ammonia",
     color="#19a844",
     hu_kWh_kg=5.2,
-    density_liquid__kg_m3=682.78,
-    vol_energy_density_kWh_m3=5.2 * 682.78)
+    density_liq_kg_m3=682.78,
+    energy_density_liq_kWh_m3=5.2 * 682.78)
 
 H2 = ECarrier(
     name="Hydrogen",
     color="#1982a8",
     hu_kWh_kg=33.33,
-    density_liquid__kg_m3=70.79,  # -253,15°C
-    vol_energy_density_kWh_m3=33.33 * 70.79)
+    density_liq_kg_m3=70.79,  # -253,15°C
+    energy_density_liq_kWh_m3=33.33 * 70.79)
 
 LNG = ECarrier(
     # https://totalenergies.de/sites/g/files/wompnd2336/f/atoms/files/
@@ -26,25 +26,25 @@ LNG = ECarrier(
     color="#1982a8",
     hu_kWh_kg=13.98,
 
-    density_liquid__kg_m3=450,  # @ -161 °C
-    vol_energy_density_kWh_m3=13.98 * 450)
+    density_liq_kg_m3=450,  # @ -161 °C
+    energy_density_liq_kWh_m3=13.98 * 450)
 
 Electr = ECarrier(
     name="Electricity",
     color="#ccb80e",
     hu_kWh_kg=0,
-    density_liquid__kg_m3=0,
-    vol_energy_density_kWh_m3=0)
+    density_liq_kg_m3=0,
+    energy_density_liq_kWh_m3=0)
 
 Loss = ECarrier(
     name="Loss", color="#cc470e",
     hu_kWh_kg=0,
-    density_liquid__kg_m3=0,
-    vol_energy_density_kWh_m3=0)
+    density_liq_kg_m3=0,
+    energy_density_liq_kWh_m3=0)
 
 Seawater = ECarrier(
     name="Seawater",
     color="#0e8acc",
     hu_kWh_kg=0,
-    density_liquid__kg_m3=999,  # -253,15°C
-    vol_energy_density_kWh_m3=0)
+    density_liq_kg_m3=999,  # -253,15°C
+    energy_density_liq_kWh_m3=0)

@@ -21,7 +21,7 @@ class ESCParameter:
     E_out_type: ECarrier
 
     # Operation
-    eta: float  # Const. or output dependend efficiency [-]
+    eta: float  # Const. or output dependent efficiency [-]
     C_rate: float  # This is the charge per hour rate [-] –
     # one divided by the number of hours to charge the battery fully.
 

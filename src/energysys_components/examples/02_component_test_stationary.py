@@ -7,8 +7,8 @@ from energysys_components.examples.example_component_definition import PEM, SOFC
 
 # Select component
 component = PEM
-
 off_state = ECCState()
+timestep_s =1
 
 if __name__ == "__main__":
     # Result DataFrame Initialization
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         print("ct", ct)
         C1_state = ECCState()
         C1 = EnergyConversionComponent(par=component,
-                                       ts=1,
+                                       ts=timestep_s,
                                        state=copy.deepcopy(C1_state))
         C1.step_action_stationary(t)
         df1.loc[ct + 1] = vars(C1.state)
@@ -38,9 +38,7 @@ if __name__ == "__main__":
         fig.add_trace(go.Scatter(x=df1.Target[1:], y=df1[cl][1:],
                                  mode='lines',
                                  name=cl))
-    fig.update_layout(xaxis_title="Target rel. output load [-]",
-                      # yaxis_title="Y Axis Title",
-                      )
+    fig.update_layout(xaxis_title="Target rel. output load [-]")
     fig.update_layout(
         autosize=False,
         width=1400,

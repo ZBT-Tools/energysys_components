@@ -2,24 +2,20 @@
 Simple EnergyConversionComponent()-Tests
 """
 
-import pandas as pd
 import plotly.graph_objects as go
-import copy
-
 from energysys_components.simulation import Simulation
-from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
 from energysys_components.examples.example_component_definition import SOFC
 
 if __name__ == "__main__":
-    # Example Definition
-    # ------------------
     component = SOFC
+    timestep_s = 1
+
     # Load profile
-    ts = 1
-    n_ts = int(180 / ts)  # number of time steps
+    n_ts = int(180 / timestep_s)  # number of time steps
+
     targets = [0,
-               0.5 * component.P_out_min_rel / 100,
-               component.P_out_min_rel / 100,
+               0.5 * component.P_out_min_rel,
+               component.P_out_min_rel,
                0.5,
                1]
     loadprofiles = []
@@ -36,7 +32,7 @@ if __name__ == "__main__":
     for lp in loadprofiles:
 
         sim = Simulation(component_parameter=component,
-                         timestep=1,
+                         timestep=timestep_s,
                          loadprofile=lp)
 
         sim.run()

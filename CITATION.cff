@@ -4,6 +4,6 @@ authors:
 - family-names: "Kuschel"
   given-names: "Florian"
 title: "energysys_components"
-version: 1.0.0
-date-released: 2024-01-10
+version: 1.0.3
+date-released: 2025-07-25
 url: "https://github.com/ZBT-Tools/energysys_components"
