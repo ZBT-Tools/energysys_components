@@ -1,13 +1,16 @@
 """
 Simple EnergyConversionComponent()-Tests
 """
+from pathlib import Path
 
 import plotly.graph_objects as go
+import yaml
+
+from energysys_components.energy_conversion import ECCParameter
 from energysys_components.simulation import Simulation
-from energysys_components.examples.example_component_definition import SOFC
 
 if __name__ == "__main__":
-    component = SOFC
+    component = ECCParameter.from_yaml(Path.cwd() / Path("components/fuel_cell_SOFC.yaml"))
     timestep_s = 1
 
     # Load profile

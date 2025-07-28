@@ -1,12 +1,15 @@
+from pathlib import Path
+
 import pandas as pd
 import plotly.graph_objects as go
 import copy
 import numpy as np
-from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent
-from energysys_components.examples.example_component_definition import PEM, SOFC
+import yaml
+
+from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent, ECCParameter
 
 # Select component
-component = PEM
+component = ECCParameter.from_yaml(Path.cwd() / Path("components/fuel_cell_PEM.yaml"))
 off_state = ECCState()
 timestep_s =1
 

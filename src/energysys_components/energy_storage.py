@@ -4,6 +4,10 @@ Unified 0D energy storage component class
 import logging
 from dataclasses import dataclass
 import copy
+from pathlib import Path
+
+import yaml
+
 from energysys_components.energy_carrier import ECarrier
 
 
@@ -153,4 +157,11 @@ class EnergyStorageComponent:
 
 
 if __name__ == "__main__":
-    ...
+    """
+    See /test for demonstration and examples
+    """
+
+    with open(Path.cwd() / Path("examples/components/battery.yaml"), 'r') as stream:
+        dictionary = yaml.safe_load(stream)
+        component = ESCParameter(**dictionary)
+
