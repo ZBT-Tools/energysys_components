@@ -2,9 +2,11 @@
 Unified 0D energy conversion component class
 """
 from dataclasses import dataclass
+from pathlib import Path
+import yaml
 from scipy import interpolate
 from energysys_components.various.normalization import denorm
-from energysys_components.energy_carrier import ECarrier
+from energysys_components.examples.example_energy_carrier import *
 import copy
 import logging
 
@@ -14,6 +16,7 @@ class ECCParameter:
     """
     Parameter of energy conversion component
     """
+
     name: str
 
     # Definition of energy carriers
@@ -56,6 +59,26 @@ class ECCParameter:
     spec_invest_cost: float  # [€/kW]
     spec_volume: float  # [m^^3/kW]
     spec_mass: float  # [kg/kW]
+
+    @staticmethod
+    def from_yaml(yaml_path: Path):
+        if Path.is_file(yaml_path):
+            with open(yaml_path, "r") as f:
+                dictionary = yaml.safe_load(f)
+
+                # Convert energy carrier strings to classes
+                # https://stackoverflow.com/questions/1176136/convert-string-to-python-class-object
+                try:
+                    for ec in ["E_in_mc_type", "E_in_sd1_type", "E_in_sd2_type","E_out_type"]:
+                        dictionary[ec] = globals()[dictionary[ec]]
+                except KeyError:
+                    raise Exception()
+
+                component = ECCParameter(**dictionary)
+                return component
+
+        else:
+            raise FileNotFoundError(f"File {yaml_path} not found.")
 
     def __post_init__(self):
         """
@@ -856,8 +879,11 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
+
+
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
-    print("See /test for demonstration and examples")
+    component = ECCParameter.from_yaml(Path.cwd() / Path("examples/components/cracker.yaml"))
+

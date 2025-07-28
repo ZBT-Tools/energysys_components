@@ -1,10 +1,12 @@
 """
 Functions for generation of component Sankey diagram
 """
+from pathlib import Path
 
 import plotly.graph_objects as go
 import pandas as pd
-from energysys_components.examples.example_component_definition import PEM
+import yaml
+
 from energysys_components.examples.example_energy_carrier import Loss
 from energysys_components.energy_conversion import ECCParameter
 
@@ -91,7 +93,7 @@ def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, d
 
 if __name__ == "__main__":
     # Create dummy results
-    component = PEM
+    component = ECCParameter.from_yaml(Path.cwd().parent / Path("examples/components/fuel_cell_PEM.yaml"))
 
     # Dummy result data
     d = {'P_in_mc': 1070.597827,
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     data = pd.Series(data=d, index=['P_in_mc', 'P_in_sd1', 'P_in_sd2', "P_out", "P_loss"])
 
     # Create plotly formatted input
-    data_node, data_link = sankey_component_input_dicts(data, comp=PEM)
+    data_node, data_link = sankey_component_input_dicts(data, comp=component)
 
     fig = go.Figure(data=[go.Sankey(
         valueformat=".0f",
