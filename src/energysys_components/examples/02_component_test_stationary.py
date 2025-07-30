@@ -4,12 +4,17 @@ import pandas as pd
 import plotly.graph_objects as go
 import copy
 import numpy as np
-import yaml
 
+from energysys_components.energy_carrier import ECarrier
 from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent, ECCParameter
 
 # Select component
-component = ECCParameter.from_yaml(Path.cwd() / Path("components/fuel_cell_PEM.yaml"))
+path_ecarrier = Path.cwd().parent / Path("energycarrier/energycarrier.yaml")
+ec_dict = ECarrier.from_yaml(path_ecarrier)
+components = ECCParameter.from_yaml(Path.cwd() / Path("../components/fuel_cell_PEM.yaml"), ecarrier=ec_dict)
+component = components["PEM"]
+
+
 off_state = ECCState()
 timestep_s =1
 

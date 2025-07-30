@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from pathlib import Path
 import yaml
 from scipy import interpolate
+from energysys_components.energy_carrier import ECarrier
 from energysys_components.various.normalization import denorm
-from energysys_components.examples.example_energy_carrier import *
 import copy
 import logging
+
 
 
 @dataclass(frozen=False)
@@ -61,24 +62,42 @@ class ECCParameter:
     spec_mass: float  # [kg/kW]
 
     @staticmethod
-    def from_yaml(yaml_path: Path):
+    def from_yaml(yaml_path: Path,
+                  ecarrier: dict) -> dict[str, "ECCParameter"]:
+        """
+        Returns one or multiple ECC objects from a yaml file.
+
+        :param ecarrier:
+        :param yaml_path:
+        :return:
+        """
+        components = dict()
         if Path.is_file(yaml_path):
             with open(yaml_path, "r") as f:
                 dictionary = yaml.safe_load(f)
+                for k, v in dictionary.items():
+                    # Convert energy carrier strings to classes
+                    try:
+                        for ec in ["E_in_mc_type", "E_in_sd1_type", "E_in_sd2_type", "E_out_type"]:
+                            v[ec] = ecarrier[v[ec]]
+                    except KeyError:
+                        raise Exception()
 
-                # Convert energy carrier strings to classes
-                # https://stackoverflow.com/questions/1176136/convert-string-to-python-class-object
-                try:
-                    for ec in ["E_in_mc_type", "E_in_sd1_type", "E_in_sd2_type","E_out_type"]:
-                        dictionary[ec] = globals()[dictionary[ec]]
-                except KeyError:
-                    raise Exception()
-
-                component = ECCParameter(**dictionary)
-                return component
-
+                    components[k] = ECCParameter(**v)
+                return components
         else:
             raise FileNotFoundError(f"File {yaml_path} not found.")
+
+    # https://stackoverflow.com/questions/33533148/how-do-i-type-hint-a-method-with-the-type-of-the-enclosing-class
+    @staticmethod
+    def from_dir(path: Path,
+                 ecarrier: dict) -> dict[str, "ECCParameter"]:
+        components = dict()
+        for p in path.glob("*.yaml"):
+            component_dict = ECCParameter.from_yaml(p, ecarrier=ecarrier)
+            for k, v in component_dict.items():
+                components[k] = v
+        return components
 
     def __post_init__(self):
         """
@@ -112,7 +131,7 @@ class ECCParameter:
                                                      kind='linear',
                                                      bounds_error=False,
                                                      fill_value=(self.eta[1][0],
-                                                       self.eta[1][-1]))
+                                                                 self.eta[1][-1]))
 
         # Interpolator eta = f(output power [kW]) [-]
         self.eta_ip_P_out = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
@@ -120,7 +139,7 @@ class ECCParameter:
                                                  kind='linear',
                                                  bounds_error=False,
                                                  fill_value=(self.eta[1][0],
-                                                          self.eta[1][-1]))
+                                                             self.eta[1][-1]))
 
         # Interpolator eta = f(input load [kW]) [-]
         list_P_in_kW = [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]]
@@ -129,7 +148,7 @@ class ECCParameter:
                                                 kind='linear',
                                                 bounds_error=False,
                                                 fill_value=(self.eta[1][0],
-                                                               self.eta[1][-1]))
+                                                            self.eta[1][-1]))
 
         # Efficiency calculations - main conversion path
         # ---------------------------------------------------------
@@ -140,7 +159,7 @@ class ECCParameter:
                                                         kind='linear',
                                                         bounds_error=False,
                                                         fill_value=(self.eta_mc[1][0],
-                                                          self.eta_mc[1][-1]))
+                                                                    self.eta_mc[1][-1]))
 
         # Interpolator eta_mc = f(output load [kW]) [-]
         self.eta_mc_ip_P_out = interpolate.interp1d(
@@ -158,7 +177,7 @@ class ECCParameter:
                                                       kind='linear',
                                                       bounds_error=False,
                                                       fill_value=(self.eta_mc[1][0],
-                                                                     self.eta_mc[1][-1]))
+                                                                  self.eta_mc[1][-1]))
 
         # Load change energy interpolator Energy_state=f(Load [%])
         # ---------------------------------------------------------
@@ -753,7 +772,7 @@ class EnergyConversionComponent:
         # Bulk Energy
         # ----------------------------------------------------------------
         E_bulk_heatup = heatup_1 * self.par.E_start_bulk
-        if heatup_1 ==1:
+        if heatup_1 == 1:
             E_bulk_op = self.par.E_in_loadchange_ip(P_out_rel_1)
         else:
             E_bulk_op = 0
@@ -787,11 +806,9 @@ class EnergyConversionComponent:
             self.logger.warning(f"Energy Balance deviation! {E_balance}")
 
         state_dict["E_balance"] = E_balance
-        state_dict["heatup"]=heatup_1
-        state_dict["eta"]=eta_1
+        state_dict["heatup"] = heatup_1
+        state_dict["eta"] = eta_1
         state_dict["eta_mc"] = eta_mc_1
-
-
 
         return state_dict
 
@@ -879,11 +896,11 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
-
-
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
-    component = ECCParameter.from_yaml(Path.cwd() / Path("examples/components/cracker.yaml"))
-
+    path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+    path_components = Path.cwd() / Path("components")
+    components = ECCParameter.from_dir(path_components,ecarrier=ec_dict)

@@ -7,3 +7,4 @@ scipy
 jupyterlab
 dash
 openpyxl
+pyyaml

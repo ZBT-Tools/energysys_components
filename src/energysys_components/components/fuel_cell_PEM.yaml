@@ -1,0 +1,50 @@
+PEM:
+  name: "Example PEM Fuel Cell"
+
+  # Energy Carrier Definitions
+  E_in_mc_type: H2
+  E_in_sd1_type: H2
+  E_in_sd2_type: Electr
+  E_out_type: Electr
+
+  # Startup
+  t_start: 5
+  E_in_start: 20
+  eta_start: .50
+
+  # Load Operation
+  P_out_min_rel: .15
+  P_out_rated: 2000  # Rated Load [kW]
+
+  p_change_pos: 20  # [% output load/min]
+  p_change_neg: 20  # [% output load/min]
+
+  E_loadchange: [[0, 1.00], [0, 0]]  # [[load [%]],[Energy [kWh]]]
+
+  # Overall component efficiency
+  eta: [[.15, .20, .25, .30, .35, .40, .45, .50, .55, .60, .65, .70, .75, .80, .85,
+        .90, .95, 1.00, 1.05, 1.10, 1.15, 1.20],
+       [.55, .5643, .571, .5737, .5733, .5708, .5667, .5612, .5548,
+        .5474, .5393, .5306, .5214,
+        .5118, .5018, .4916, .4812, .4707, .4601, .4494, .4388,
+        .4282]]
+  # Main conversion path efficiency
+  eta_mc: [[.15, .20, .25, .30, .35, .40, .45, .50, .55, .60, .65, .70, .75, .80, .85,
+           .90, .95, 1.00, 1.05, 1.10, 1.15, 1.20],
+          [.55, .5643, .571, .5737, .5733, .5708, .5667, .5612, .5548,
+           .5474, .5393, .5306, .5214,
+           .5118, .5018, .4916, .4812, .4707, .4601, .4494, .4388,
+           .4282]]
+
+  # Shutdown
+  t_cooldown: 60  # Time until system cooled down [Minutes] ("idle to cool")
+
+  # Secondary energy ratios
+  # 1:  input flow, 2:  electric
+  split_P_sd: [0, 1]  # split of secondary energies, eg. [0.2,0.8] for 2: 8 ratio
+  fact_P_heat_P_Loss: 0
+
+  # Techno-economic
+  spec_invest_cost: 200 # [€/kW]
+  spec_volume: 0.005  # [m^^3/kW]
+  spec_mass: 1  # [kg/kW]

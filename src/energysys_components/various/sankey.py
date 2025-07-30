@@ -2,16 +2,16 @@
 Functions for generation of component Sankey diagram
 """
 from pathlib import Path
-
 import plotly.graph_objects as go
 import pandas as pd
-import yaml
-
-from energysys_components.examples.example_energy_carrier import Loss
+from energysys_components.energy_carrier import ECarrier
 from energysys_components.energy_conversion import ECCParameter
 
 
-def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, dict):
+def sankey_component_input_dicts(res: pd.Series,
+                                 comp: ECCParameter,
+                                 energycarrier:dict,
+                                 ) -> (dict, dict):
     """
     Creates input dicts for plotly dash sankey diagram
 
@@ -39,7 +39,7 @@ def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, d
                 dict(label="Comp", color="#9e9da1", id=3),
                 dict(label=f"Output",
                      color=comp.E_out_type.color, id=4),
-                dict(label="Loss", color=Loss.color, id=5)]
+                dict(label="Loss", color=energycarrier["Loss"].color, id=5)]
 
     # Plotly node format
     node = dict(label=[dct["label"] for dct in node_def],
@@ -73,7 +73,7 @@ def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, d
              source=gx("Comp"),
              target=gx("Loss"),
              value=res.P_loss,
-             color=Loss.color),
+             color=energycarrier["Loss"].color),
 
         dict(label=f"Output {comp.E_out_type.name}",
              source=gx("Comp"),
@@ -92,8 +92,11 @@ def sankey_component_input_dicts(res: pd.Series, comp: ECCParameter) -> (dict, d
 
 
 if __name__ == "__main__":
-    # Create dummy results
-    component = ECCParameter.from_yaml(Path.cwd().parent / Path("examples/components/fuel_cell_PEM.yaml"))
+
+    path_ecarrier = Path.cwd().parent / Path("energycarrier/energycarrier.yaml")
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+    components = ECCParameter.from_yaml(Path.cwd() / Path("../components/fuel_cell_PEM.yaml"), ecarrier=ec_dict)
+    component = components["PEM"]
 
     # Dummy result data
     d = {'P_in_mc': 1070.597827,
@@ -104,7 +107,9 @@ if __name__ == "__main__":
     data = pd.Series(data=d, index=['P_in_mc', 'P_in_sd1', 'P_in_sd2', "P_out", "P_loss"])
 
     # Create plotly formatted input
-    data_node, data_link = sankey_component_input_dicts(data, comp=component)
+    data_node, data_link = sankey_component_input_dicts(data,
+                                                        comp=component,
+                                                        energycarrier=ec_dict)
 
     fig = go.Figure(data=[go.Sankey(
         valueformat=".0f",

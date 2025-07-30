@@ -37,6 +37,44 @@ class ESCParameter:
     E_cap: float = 0  # Capacity of storage component [kWh]
     autoIncrease: bool = True  # Allows component to increase capacity on the fly during calculation
 
+    @staticmethod
+    def from_yaml(yaml_path: Path,
+                  ecarrier: dict)-> dict[str, "ESCParameter"]:
+        """
+        Returns one or multiple ECC objects from a yaml file.
+
+        :param yaml_path:
+        :return:
+        """
+        components = dict()
+        if Path.is_file(yaml_path):
+            with open(yaml_path, "r") as f:
+                dictionary = yaml.safe_load(f)
+                for k, v in dictionary.items():
+                    # Convert energy carrier strings to classes
+                    try:
+                        for ec in ["E_in_mc_type", "E_in_sd1_type", "E_in_sd2_type", "E_out_type"]:
+                            v[ec] = ecarrier[v[ec]]
+                    except KeyError:
+                        raise Exception()
+
+                    components[k] = ESCParameter(**v)
+                return components
+        else:
+            raise FileNotFoundError(f"File {yaml_path} not found.")
+
+    # https://stackoverflow.com/questions/33533148/how-do-i-type-hint-a-method-with-the-type-of-the-enclosing-class
+    @staticmethod
+    def from_dir(path: Path,
+                 ecarrier: dict) -> dict[str, "ESCParameter"]:
+        components = dict()
+        for p in path.glob("*.yaml"):
+            component_dict = ESCParameter.from_yaml(p, ecarrier=ecarrier)
+            for k, v in component_dict.items():
+                components[k] = v
+        return components
+
+
 
 @dataclass(frozen=False)
 class ESCState:
@@ -160,8 +198,7 @@ if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
-
-    with open(Path.cwd() / Path("examples/components/battery.yaml"), 'r') as stream:
-        dictionary = yaml.safe_load(stream)
-        component = ESCParameter(**dictionary)
-
+    path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+    path_components = Path.cwd() / Path("components_storage")
+    components = ESCParameter.from_dir(path_components, ecarrier=ec_dict)

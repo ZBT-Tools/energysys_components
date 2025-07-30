@@ -6,11 +6,17 @@ from pathlib import Path
 import plotly.graph_objects as go
 import yaml
 
+from energysys_components.energy_carrier import ECarrier
 from energysys_components.energy_conversion import ECCParameter
 from energysys_components.simulation import Simulation
 
 if __name__ == "__main__":
-    component = ECCParameter.from_yaml(Path.cwd() / Path("components/fuel_cell_SOFC.yaml"))
+    path_ecarrier = Path.cwd().parent / Path("energycarrier/energycarrier.yaml")
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+
+    components = ECCParameter.from_yaml(Path.cwd() / Path("../components/fuel_cell_SOFC.yaml"), ecarrier=ec_dict)
+    component = components["SOFC"]
+
     timestep_s = 1
 
     # Load profile

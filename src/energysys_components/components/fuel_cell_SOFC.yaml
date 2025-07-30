@@ -1,0 +1,37 @@
+SOFC:
+  name: "Example Solid Oxide Fuel Cell"
+
+  # Energy Carrier Definitions
+  E_in_mc_type: NH3
+  E_in_sd1_type: NH3
+  E_in_sd2_type: Electr
+  E_out_type: Electr
+
+  # Startup
+  t_start: 10
+  E_in_start: 10
+  eta_start: .50
+  # Load Operation
+  P_out_min_rel: .15
+  P_out_rated: 2000
+
+  p_change_pos: 5
+  p_change_neg: 5
+
+  eta: [[.15, 1.00], [.90, .91]]
+  eta_mc: [[.15, 1.00], [.90, .91]]
+  E_loadchange: [[0, .15, 1.00], [0, 0, 20]]
+
+  # Shutdown
+  t_cooldown: 10  # Time until system cooled down [Minutes] ("idle to cool")
+
+  # Secondary energy ratios
+  # 1: input flow, 2: electric
+  split_P_sd: [0.95, 0.05]  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+  fact_P_heat_P_Loss: 1
+
+  # Techno-economic
+  spec_invest_cost: 200 # [€/kW]
+  spec_volume: 0.005  # [m^^3/kW]
+  spec_mass: 1  # [kg/kW]
+
