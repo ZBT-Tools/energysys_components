@@ -900,16 +900,16 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
-    def export_state(self, add_timestep=None)-> pd.DataFrame:
+    def export_state(self, add_timestep=None)-> dict:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
         c_data["name"] = self.par.name
         if add_timestep is not None:
             c_data["ts"]=add_timestep
-        df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
+        # df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
 
-        return df
+        return c_data
 
 if __name__ == "__main__":
     """
