@@ -902,5 +902,6 @@ if __name__ == "__main__":
     """
     path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
     ec_dict = ECarrier.from_yaml(path_ecarrier)
-    path_components = Path.cwd() / Path("components")
-    components = ECCParameter.from_dir(path_components,ecarrier=ec_dict)
+    path_component_defs = Path.cwd() / Path("components")
+    component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
+    components = [EnergyConversionComponent(par,ts=1) for k,par in component_defs.items()]
