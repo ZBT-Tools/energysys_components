@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import copy
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 from energysys_components.energy_carrier import ECarrier
@@ -118,8 +119,8 @@ class EnergyStorageComponent:
         self.state = state
         self.logger = logging.getLogger(__name__)
 
-    def step_action(self,
-                    E_req: float):
+    def apply_control(self,
+                      E_req: float):
         """
         Update of storage component
 
@@ -194,6 +195,16 @@ class EnergyStorageComponent:
             self.par.E_cap = 0.001
 
 
+    def export_state(self, add_timestep=None):
+        # Component state information
+        c_data = dict()
+        c_data.update(self.state.__dict__)
+        if add_timestep is not None:
+            c_data["ts"]=add_timestep
+        df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
+
+        return df
+
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
@@ -203,3 +214,4 @@ if __name__ == "__main__":
     path_component_defs = Path.cwd() / Path("components_storage")
     component_defs = ESCParameter.from_dir(path_component_defs, ecarrier=ec_dict)
     components = [EnergyStorageComponent(par,ts=1) for k,par in component_defs.items()]
+    states = [c.export_state() for c in components]

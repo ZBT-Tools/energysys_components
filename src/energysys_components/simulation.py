@@ -2,7 +2,6 @@
 Energy Conversion Component - Simulation class
 """
 import pandas as pd
-
 from energysys_components.energy_conversion import ECCState, EnergyConversionComponent, ECCParameter
 
 
@@ -37,7 +36,7 @@ class Simulation:
 
     def run(self):
         for ix, loadtarget in enumerate(self.loadprofile):
-            self.component.step_action(loadtarget)
+            self.component.apply_control(loadtarget)
             self.results = pd.concat([self.results,
                                       pd.DataFrame([vars(self.component.state)])],
                                      axis=0,  ignore_index=True)

@@ -34,7 +34,7 @@ if __name__ == "__main__":
         C1 = EnergyConversionComponent(par=component,
                                        ts=timestep_s,
                                        state=copy.deepcopy(C1_state))
-        C1.step_action_stationary(t)
+        C1.apply_control_stationary(t)
         df1.loc[ct + 1] = vars(C1.state)
         df1.loc[ct + 1, "Target"] = t
 

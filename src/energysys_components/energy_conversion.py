@@ -3,6 +3,8 @@ Unified 0D energy conversion component class
 """
 from dataclasses import dataclass
 from pathlib import Path
+
+import pandas as pd
 import yaml
 from scipy import interpolate
 from energysys_components.energy_carrier import ECarrier
@@ -290,14 +292,16 @@ class EnergyConversionComponent:
         self.state = state
         self.logger = logging.getLogger(__name__)
 
-    def step_action(self,
-                    contr_val: float,
-                    hypothetical_step: bool = False,
-                    contr_type: str = "target",
-                    contr_lim_min: float = 0.,
-                    contr_lim_max: float = 1.):
+    def apply_control(self,
+                      contr_val: float,
+                      hypothetical_step: bool = False,
+                      contr_type: str = "target",
+                      contr_lim_min: float = 0.,
+                      contr_lim_max: float = 1.):
 
         """
+        #ToDo: Define optional arguments somewhere else
+
         Function to change the state of the EnergyConversionComponent (ECC) from t=i to t=i+ts
 
         :param contr_val:  float, control value
@@ -812,9 +816,9 @@ class EnergyConversionComponent:
 
         return state_dict
 
-    def step_action_stationary(self,
-                               contr_val: float,
-                               max_iterations=100) -> None:
+    def apply_control_stationary(self,
+                                 contr_val: float,
+                                 max_iterations=100) -> None:
         """
         Performs step_action() until target "contr_val" is reached.
         Condition for stationary state:
@@ -835,14 +839,14 @@ class EnergyConversionComponent:
         while not ((contr_val == self.state.P_out / self.par.P_out_rated) and E_cond) and (
                 ct_iteration <= max_iterations):
             E_in_0 = self.state.E_in
-            self.step_action(contr_val)
+            self.apply_control(contr_val)
             E_in_1 = self.state.E_in
             if E_in_0 == E_in_1:
                 E_cond = True
             ct_iteration += 1
 
         # Final Step
-        self.step_action(contr_val)
+        self.apply_control(contr_val)
 
         if ct_iteration == 100:
             raise Exception("Target not reached.")
@@ -896,6 +900,16 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
+    def export_state(self, add_timestep=None):
+        # Component state information
+        c_data = dict()
+        c_data.update(self.state.__dict__)
+        if add_timestep is not None:
+            c_data["ts"]=add_timestep
+        df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
+
+        return df
+
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
@@ -905,3 +919,5 @@ if __name__ == "__main__":
     path_component_defs = Path.cwd() / Path("components")
     component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
     components = [EnergyConversionComponent(par,ts=1) for k,par in component_defs.items()]
+
+    states = [c.export_state() for c in components]
