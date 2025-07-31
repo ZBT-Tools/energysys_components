@@ -900,7 +900,7 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
-    def export_state(self, add_timestep=None):
+    def export_state(self, add_timestep=None)-> pd.DataFrame:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
