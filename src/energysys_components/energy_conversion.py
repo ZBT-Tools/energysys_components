@@ -904,6 +904,7 @@ class EnergyConversionComponent:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
+        c_data["name"] = self.par.name
         if add_timestep is not None:
             c_data["ts"]=add_timestep
         df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
