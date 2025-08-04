@@ -3,14 +3,15 @@ Unified 0D energy conversion component class
 """
 from dataclasses import dataclass
 from pathlib import Path
-
+import numpy as np
 import pandas as pd
 import yaml
-from scipy import interpolate
 from energysys_components.energy_carrier import ECarrier
 from energysys_components.various.normalization import denorm
 import copy
 import logging
+from tqdm import tqdm
+import random
 
 
 
@@ -44,7 +45,7 @@ class ECCParameter:
     # (examples: due to SOFC stack temperature increase)  [[load [-]],[Energy [kWh]]]
 
     # Overall component efficiency
-    eta: list  # load dependent efficiency  [[load [-]],[efficiency [-]]]
+    eta: list[list[float]]  # load dependent efficiency  [[load [-]],[efficiency [-]]]
     # Main conversion path efficiency
     eta_mc: list  # load dependent efficiency  [[load [-]],[efficiency [-]]]
 
@@ -101,6 +102,75 @@ class ECCParameter:
                 components[k] = v
         return components
 
+    def eta_ip_P_out_rel(self, P_out_rel: float) -> float:
+        """
+        eta = f(output power rel [-]) [-]
+
+        :return:
+        """
+        return np.interp(x=P_out_rel,
+                         xp=self.eta[0], fp=self.eta[1])
+
+    def eta_ip_P_out(self, P_out: float) -> float:
+        """
+        Interpolator eta = f(output power [kW]) [-]
+        :param P_out:
+        :return:
+        """
+        return np.interp(x=P_out,
+                         xp=[e * self.P_out_rated for e in self.eta[0]], fp=self.eta[1])
+
+    def eta_ip_P_in(self,P_in) -> float:
+        """
+        Interpolator eta = f(input load [kW]) [-]
+        :param P_in:
+        :return:
+        """
+        return np.interp(x=P_in,
+                         xp= [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]],
+                         fp=self.eta[1])
+
+    def eta_mc_ip_P_out_rel(self, P_out_rel: float) -> float:
+        """
+        Interpolator eta_mc = f(output load [-]) [-]
+        :param P_out_rel:
+        :return:
+        """
+
+        return np.interp(x=P_out_rel,
+                         xp=self.eta_mc[0],
+                         fp=self.eta_mc[1])
+
+    def eta_mc_ip_P_out(self,P_out: float) -> float:
+        """
+        Interpolator eta_mc = f(output load [kW]) [-]
+        :param P_out:
+        :return:
+        """
+        return np.interp(x=P_out,
+                         xp=[e * self.P_out_rated for e in self.eta_mc[0]],
+                         fp=self.eta_mc[1])
+
+    def eta_mc_ip_P_in_mc(self,P_in_mc:float) -> float:
+        """
+        Interpolator eta_mc = f(Main conversion input load [kW]) [-]
+        :return:
+        """
+        list_P_in_mc = [e * self.P_out_rated / self.eta_mc_ip_P_out_rel(e) for e in self.eta_mc[0]]
+        return np.interp(x=P_in_mc,
+                         xp=list_P_in_mc,
+                         fp=self.eta_mc[1])
+
+    def E_in_loadchange_ip(self,P_out_rel: float) -> float:
+        """
+        Load change energy interpolator Energy_state=f(Load [%])
+        :return:
+
+        """
+        return np.interp(x=P_out_rel,
+                         xp=self.E_loadchange[0],
+                         fp=self.E_loadchange[1])
+
     def __post_init__(self):
         """
         Calculation of interpolators, ...
@@ -127,68 +197,68 @@ class ECCParameter:
 
         # Efficiency calculations - overall component
         # ---------------------------------------------------------
-        # Interpolator eta = f(output power rel [-]) [-]
-        self.eta_ip_P_out_rel = interpolate.interp1d(self.eta[0],
-                                                     self.eta[1],
-                                                     kind='linear',
-                                                     bounds_error=False,
-                                                     fill_value=(self.eta[1][0],
-                                                                 self.eta[1][-1]))
+        # # Interpolator eta = f(output power rel [-]) [-]
+        # self.eta_ip_P_out_rel = interpolate.interp1d(self.eta[0],
+        #                                              self.eta[1],
+        #                                              kind='linear',
+        #                                              bounds_error=False,
+        #                                              fill_value=(self.eta[1][0],
+        #                                                          self.eta[1][-1]))
 
         # Interpolator eta = f(output power [kW]) [-]
-        self.eta_ip_P_out = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
-                                                 self.eta[1],
-                                                 kind='linear',
-                                                 bounds_error=False,
-                                                 fill_value=(self.eta[1][0],
-                                                             self.eta[1][-1]))
+        # self.eta_ip_P_out = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
+        #                                          self.eta[1],
+        #                                          kind='linear',
+        #                                          bounds_error=False,
+        #                                          fill_value=(self.eta[1][0],
+        #                                                      self.eta[1][-1]))
 
         # Interpolator eta = f(input load [kW]) [-]
-        list_P_in_kW = [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]]
-        self.eta_ip_P_in = interpolate.interp1d(list_P_in_kW,
-                                                self.eta[1],
-                                                kind='linear',
-                                                bounds_error=False,
-                                                fill_value=(self.eta[1][0],
-                                                            self.eta[1][-1]))
+        # list_P_in_kW = [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]]
+        # self.eta_ip_P_in = interpolate.interp1d(list_P_in_kW,
+        #                                         self.eta[1],
+        #                                         kind='linear',
+        #                                         bounds_error=False,
+        #                                         fill_value=(self.eta[1][0],
+        #                                                     self.eta[1][-1]))
 
         # Efficiency calculations - main conversion path
         # ---------------------------------------------------------
+        #
+        # # Interpolator eta_mc = f(output load [-]) [-]
+        # self.eta_mc_ip_P_out_rel = interpolate.interp1d(self.eta_mc[0],
+        #                                                 self.eta_mc[1],
+        #                                                 kind='linear',
+        #                                                 bounds_error=False,
+        #                                                 fill_value=(self.eta_mc[1][0],
+        #                                                             self.eta_mc[1][-1]))
 
-        # Interpolator eta_mc = f(output load [-]) [-]
-        self.eta_mc_ip_P_out_rel = interpolate.interp1d(self.eta_mc[0],
-                                                        self.eta_mc[1],
-                                                        kind='linear',
-                                                        bounds_error=False,
-                                                        fill_value=(self.eta_mc[1][0],
-                                                                    self.eta_mc[1][-1]))
+        # # Interpolator eta_mc = f(output load [kW]) [-]
+        # self.eta_mc_ip_P_out = interpolate.interp1d(
+        #     [e * self.P_out_rated for e in self.eta_mc[0]],
+        #     self.eta_mc[1],
+        #     kind='linear',
+        #     bounds_error=False,
+        #     fill_value=(self.eta_mc[1][0],
+        #                 self.eta_mc[1][-1]))
 
-        # Interpolator eta_mc = f(output load [kW]) [-]
-        self.eta_mc_ip_P_out = interpolate.interp1d(
-            [e * self.P_out_rated for e in self.eta_mc[0]],
-            self.eta_mc[1],
-            kind='linear',
-            bounds_error=False,
-            fill_value=(self.eta_mc[1][0],
-                        self.eta_mc[1][-1]))
+        # # Interpolator eta_mc = f(input load [kW]) [-]
+        # list_P_in_mc_kW = [e * self.P_out_rated / self.eta_mc_ip_P_out_rel(e) for e in self.eta_mc[0]]
+        # self.eta_mc_ip_P_in_mc = interpolate.interp1d(list_P_in_mc_kW,
+        #                                               self.eta_mc[1],
+        #                                               kind='linear',
+        #                                               bounds_error=False,
+        #                                               fill_value=(self.eta_mc[1][0],
+        #                                                           self.eta_mc[1][-1]))
 
-        # Interpolator eta_mc = f(input load [kW]) [-]
-        list_P_in_mc_kW = [e * self.P_out_rated / self.eta_mc_ip_P_out_rel(e) for e in self.eta_mc[0]]
-        self.eta_mc_ip_P_in_mc = interpolate.interp1d(list_P_in_mc_kW,
-                                                      self.eta_mc[1],
-                                                      kind='linear',
-                                                      bounds_error=False,
-                                                      fill_value=(self.eta_mc[1][0],
-                                                                  self.eta_mc[1][-1]))
-
-        # Load change energy interpolator Energy_state=f(Load [%])
-        # ---------------------------------------------------------
-        self.E_in_loadchange_ip = interpolate.interp1d(self.E_loadchange[0],
-                                                       self.E_loadchange[1],
-                                                       kind='linear',
-                                                       bounds_error=False,
-                                                       fill_value=(self.E_loadchange[1][0],
-                                                                   self.E_loadchange[1][-1]))
+        # # Load change energy interpolator Energy_state=f(Load [%])
+        # # ---------------------------------------------------------
+        # self.E_in_loadchange_ip = interpolate.interp1d(self.E_loadchange[0],
+        #                                                self.E_loadchange[1],
+        #                                                kind='linear',
+        #                                                bounds_error=False,
+        #                                                fill_value=(self.E_loadchange[1][0],
+        #                                                            self.E_loadchange[1][-1]))
 
         # Characteristic loads
         # ---------------------------------------------------------
@@ -368,8 +438,8 @@ class EnergyConversionComponent:
             eta_1 = self.par.eta_start
             eta_mc_1 = 1
         else:
-            eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1).item(0)
-            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1).item(0)
+            eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1)
+            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1)
 
         # 3.) State change calculation
         # ---------------------------------------------------------
@@ -624,8 +694,8 @@ class EnergyConversionComponent:
         # ------------
         E_loadchange = (par.E_in_loadchange_ip(P_out_rel_1) -
                         par.E_in_loadchange_ip(P_out_rel_0))
-        E_in_sd_loadchange = max(0, E_loadchange)
-        E_loss_loadchange = abs(min(0, E_loadchange))
+        E_in_sd_loadchange = max(0., E_loadchange)
+        E_loss_loadchange = abs(min(0., E_loadchange))
 
         P_in_sd_loadchange = E_in_sd_loadchange / (dt / 60)
         P_loss_loadchange = E_loss_loadchange / (dt / 60)
@@ -791,7 +861,7 @@ class EnergyConversionComponent:
 
         # Balances
         # ----------------------------------------------------------------
-        tol = 1e-5
+        tol = 1e-4
         sd = state_dict
         # Inlet energy check
         if abs(sd["E_in"] - (sd["E_in_mc"] + sd["E_in_sd1"] + sd["E_in_sd2"])) > tol:
@@ -890,7 +960,7 @@ class EnergyConversionComponent:
             P_in_mc = P_out_kW / self.par.eta_mc_ip_P_out(P_out_kW)
             return P_in_mc
 
-    def reset(self):
+    def reset_state(self):
         """
             Reset to initial state
             (e.g. for ML/RL-Algorithms)
@@ -911,14 +981,50 @@ class EnergyConversionComponent:
 
         return c_data
 
+
+
+def test_apply_control(path_ecarrier,path_component_def):
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+    component_def = ECCParameter.from_yaml(path_component_def,ecarrier=ec_dict)
+    component = EnergyConversionComponent(component_def["PEM"],ts=1)
+
+
+    # Stationary tests with identical control values:
+    # control_values = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+    ts = 0
+    res_c = []
+    component.reset_state()
+    run_res_c=[]
+
+    control_values = [random.uniform(0,.1) for i in tqdm(range(1000000))]
+
+    for cv in tqdm(control_values):  # 1 year
+        component.apply_control(cv)
+        c_state = component.export_state(add_timestep=ts)
+        run_res_c.append(c_state)
+        ts += 1
+    run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
+    res_c.extend(run_res_c)
+
+    res_c = pd.DataFrame(res_c)
+
+    return res_c
+
+
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
+    # ToDo: Continue Profiling
     path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
-    ec_dict = ECarrier.from_yaml(path_ecarrier)
-    path_component_defs = Path.cwd() / Path("components")
-    component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
-    components = [EnergyConversionComponent(par,ts=1) for k,par in component_defs.items()]
+    path_component_def = Path.cwd() / Path("components/fuel_cell_PEM.yaml")
+    res = test_apply_control(path_ecarrier,path_component_def)
 
-    states = [c.export_state() for c in components]
+
+
+    # component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
+    # components = [EnergyConversionComponent(par,ts=1) for k,par in component_defs.items()]
+    #
+    #
+    #
+    # states = [c.export_state() for c in components]

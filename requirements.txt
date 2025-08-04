@@ -8,3 +8,4 @@ jupyterlab
 dash
 openpyxl
 pyyaml
+tqdm
