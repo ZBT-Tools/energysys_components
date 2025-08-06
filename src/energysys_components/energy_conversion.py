@@ -12,6 +12,8 @@ import copy
 import logging
 from tqdm import tqdm
 import random
+from cProfile import Profile
+from pstats import SortKey, Stats
 
 
 
@@ -187,79 +189,6 @@ class ECCParameter:
         # Loss during heatup [kWh]
         self.E_start_loss = self.E_in_start * (1 - self.eta_start)
 
-        # Shutdown calculations
-        # ---------------------------------------------------------
-        # Based on par.t_cooldown & par.min_load_perc calculate
-        # cool down decrease per time [%/min]
-        # Example:  min_load_perc = 5%, cooldown_time= 30min
-        #           --> cooldown_decr =  2.5% / min
-        # self.p_change_sd_pct = self.P_out_min_rel / self.t_cooldown
-
-        # Efficiency calculations - overall component
-        # ---------------------------------------------------------
-        # # Interpolator eta = f(output power rel [-]) [-]
-        # self.eta_ip_P_out_rel = interpolate.interp1d(self.eta[0],
-        #                                              self.eta[1],
-        #                                              kind='linear',
-        #                                              bounds_error=False,
-        #                                              fill_value=(self.eta[1][0],
-        #                                                          self.eta[1][-1]))
-
-        # Interpolator eta = f(output power [kW]) [-]
-        # self.eta_ip_P_out = interpolate.interp1d([e * self.P_out_rated for e in self.eta[0]],
-        #                                          self.eta[1],
-        #                                          kind='linear',
-        #                                          bounds_error=False,
-        #                                          fill_value=(self.eta[1][0],
-        #                                                      self.eta[1][-1]))
-
-        # Interpolator eta = f(input load [kW]) [-]
-        # list_P_in_kW = [e * self.P_out_rated / self.eta_ip_P_out_rel(e) for e in self.eta[0]]
-        # self.eta_ip_P_in = interpolate.interp1d(list_P_in_kW,
-        #                                         self.eta[1],
-        #                                         kind='linear',
-        #                                         bounds_error=False,
-        #                                         fill_value=(self.eta[1][0],
-        #                                                     self.eta[1][-1]))
-
-        # Efficiency calculations - main conversion path
-        # ---------------------------------------------------------
-        #
-        # # Interpolator eta_mc = f(output load [-]) [-]
-        # self.eta_mc_ip_P_out_rel = interpolate.interp1d(self.eta_mc[0],
-        #                                                 self.eta_mc[1],
-        #                                                 kind='linear',
-        #                                                 bounds_error=False,
-        #                                                 fill_value=(self.eta_mc[1][0],
-        #                                                             self.eta_mc[1][-1]))
-
-        # # Interpolator eta_mc = f(output load [kW]) [-]
-        # self.eta_mc_ip_P_out = interpolate.interp1d(
-        #     [e * self.P_out_rated for e in self.eta_mc[0]],
-        #     self.eta_mc[1],
-        #     kind='linear',
-        #     bounds_error=False,
-        #     fill_value=(self.eta_mc[1][0],
-        #                 self.eta_mc[1][-1]))
-
-        # # Interpolator eta_mc = f(input load [kW]) [-]
-        # list_P_in_mc_kW = [e * self.P_out_rated / self.eta_mc_ip_P_out_rel(e) for e in self.eta_mc[0]]
-        # self.eta_mc_ip_P_in_mc = interpolate.interp1d(list_P_in_mc_kW,
-        #                                               self.eta_mc[1],
-        #                                               kind='linear',
-        #                                               bounds_error=False,
-        #                                               fill_value=(self.eta_mc[1][0],
-        #                                                           self.eta_mc[1][-1]))
-
-        # # Load change energy interpolator Energy_state=f(Load [%])
-        # # ---------------------------------------------------------
-        # self.E_in_loadchange_ip = interpolate.interp1d(self.E_loadchange[0],
-        #                                                self.E_loadchange[1],
-        #                                                kind='linear',
-        #                                                bounds_error=False,
-        #                                                fill_value=(self.E_loadchange[1][0],
-        #                                                            self.E_loadchange[1][-1]))
-
         # Characteristic loads
         # ---------------------------------------------------------
         # https://stackoverflow.com/questions/2474015/
@@ -288,6 +217,8 @@ class ECCState:
 
     # Bulk | Internal Energy
     E_bulk: float = 0  # [kWh]
+    E_bulk_heatup: float = 0  # [kWh]
+    E_bulk_op: float = 0  # [kWh]
 
     # Input
     P_in: float = 0  # [kW]
@@ -674,6 +605,7 @@ class EnergyConversionComponent:
                          eta_1,
                          eta_mc_0,
                          eta_mc_1,
+                         d_E_bulk_op,
                          include_power: bool):
         """
 
@@ -692,10 +624,8 @@ class EnergyConversionComponent:
 
         # Load change
         # ------------
-        E_loadchange = (par.E_in_loadchange_ip(P_out_rel_1) -
-                        par.E_in_loadchange_ip(P_out_rel_0))
-        E_in_sd_loadchange = max(0., E_loadchange)
-        E_loss_loadchange = abs(min(0., E_loadchange))
+        E_in_sd_loadchange = max(0., d_E_bulk_op)
+        E_loss_loadchange = abs(min(0., d_E_bulk_op))
 
         P_in_sd_loadchange = E_in_sd_loadchange / (dt / 60)
         P_loss_loadchange = E_loss_loadchange / (dt / 60)
@@ -773,8 +703,17 @@ class EnergyConversionComponent:
         :return: state_1: dict
         """
         P_out_rel_0 = self.state.P_out / self.par.P_out_rated
-
         heatup_0 = self.state.heatup
+
+        # Bulk Energy
+        # ----------------------------------------------------------------
+        E_bulk_heatup = heatup_1 * self.par.E_start_bulk
+        if heatup_1 == 1:
+            E_bulk_op = self.par.E_in_loadchange_ip(P_out_rel_1)
+        else:
+            E_bulk_op = 0
+        E_bulk = E_bulk_heatup + E_bulk_op
+
 
         # noLoad operation -> noLoad operation [NL->NL]
         if (heatup_1 < 1) and (heatup_0 < 1):
@@ -792,6 +731,7 @@ class EnergyConversionComponent:
                                                eta_1=eta_1,
                                                eta_mc_0=self.state.eta_mc,
                                                eta_mc_1=eta_mc_1,
+                                               d_E_bulk_op = E_bulk_op - self.state.E_bulk_op,
                                                include_power=True)
 
         # load operation -> noLoad operation [L->NL]
@@ -805,6 +745,7 @@ class EnergyConversionComponent:
                     eta_1=self.par.eta_ip_P_out_rel(self.par.P_out_min_rel),
                     eta_mc_0=self.state.eta_mc,
                     eta_mc_1=self.par.eta_mc_ip_P_out_rel(self.par.P_out_min_rel),
+                    d_E_bulk_op=E_bulk_op - self.state.E_bulk_op,
                     include_power=False)
             else:
                 state_dict_load = dict()
@@ -835,6 +776,7 @@ class EnergyConversionComponent:
                 eta_1=eta_1,
                 eta_mc_0=self.par.eta_mc_ip_P_out_rel(self.par.P_out_min_rel),
                 eta_mc_1=eta_mc_1,
+                d_E_bulk_op=E_bulk_op - self.state.E_bulk_op,
                 include_power=True)
 
             state_dict = {k: state_dict_load.get(k, 0) + state_dict_noLoad.get(k, 0) for k in
@@ -843,48 +785,46 @@ class EnergyConversionComponent:
         else:
             raise Exception("Error in state change.")
 
-        # Bulk Energy
-        # ----------------------------------------------------------------
-        E_bulk_heatup = heatup_1 * self.par.E_start_bulk
-        if heatup_1 == 1:
-            E_bulk_op = self.par.E_in_loadchange_ip(P_out_rel_1)
-        else:
-            E_bulk_op = 0
-
-        E_bulk = E_bulk_heatup + E_bulk_op
-
-        dE_bulk_heatup = (heatup_1 - heatup_0) * self.par.E_start_bulk
-        dE_bulk_loadchange = (
-                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_1)) -
-                self.par.E_in_loadchange_ip(max(self.par.P_out_min_rel, P_out_rel_0)))
         state_dict["E_bulk"] = E_bulk
-
-        # Balances
-        # ----------------------------------------------------------------
-        tol = 1e-4
-        sd = state_dict
-        # Inlet energy check
-        if abs(sd["E_in"] - (sd["E_in_mc"] + sd["E_in_sd1"] + sd["E_in_sd2"])) > tol:
-            self.logger.warning(f"E_in deviation! Total: {sd['E_in']},"
-                                f' splitted: {sd["E_in_mc"] + sd["E_in_sd1"] + sd["E_in_sd2"]}')
-
-        # Inlet power check
-        if abs(sd["P_in"] - (sd["P_in_mc"] + sd["P_in_sd1"] + sd["P_in_sd2"])) > tol:
-            self.logger.warning(f"P_in deviation! Total: {sd['P_in']},"
-                                f' splitted: {sd["P_in_mc"] + sd["P_in_sd1"] + sd["P_in_sd2"]}')
-
-        E_balance = (sd["E_in"] - sd["E_out"] - sd["E_loss"]) - (
-                dE_bulk_heatup + dE_bulk_loadchange)
-
-        if abs(E_balance) > tol:
-            self.logger.warning(f"Energy Balance deviation! {E_balance}")
-
-        state_dict["E_balance"] = E_balance
+        state_dict["E_bulk_heatup"] = E_bulk_heatup
+        state_dict["E_bulk_op"] = E_bulk_op
         state_dict["heatup"] = heatup_1
         state_dict["eta"] = eta_1
         state_dict["eta_mc"] = eta_mc_1
 
+        # Balances
+        # ----------------------------------------------------------------
+
+        # Idea: Balance is not a real state
+        # Idea: Energy balance might / should be shifted to "apply_control()"
+        state_dict["E_balance"] = self._balance(state0= self.export_state(),
+                                                state1=state_dict)
+
         return state_dict
+
+    def _balance(self, state0:dict,state1:dict):
+
+        # ToDo: check smaler tolerance value
+        tol = 1e-4
+        st0 = state0
+        st1 = state1
+
+
+        # Inlet energy check
+        if abs(st1["E_in"] - (st1["E_in_mc"] + st1["E_in_sd1"] + st1["E_in_sd2"])) > tol:
+            self.logger.warning(f"E_in deviation! Total: {st1['E_in']},"
+                                f' splitted: {st1["E_in_mc"] + st1["E_in_sd1"] + st1["E_in_sd2"]}')
+
+        # Inlet power check
+        if abs(st1["P_in"] - (st1["P_in_mc"] + st1["P_in_sd1"] + st1["P_in_sd2"])) > tol:
+            self.logger.warning(f"P_in deviation! Total: {st1['P_in']},"
+                                f' splitted: {st1["P_in_mc"] + st1["P_in_sd1"] + st1["P_in_sd2"]}')
+
+        E_balance = (st1["E_in"] - st1["E_out"] - st1["E_loss"]) - ((st1["E_bulk_heatup"]-st0["E_bulk_heatup"])+(st1["E_bulk_op"]-st0["E_bulk_op"]))
+        if abs(E_balance) > tol:
+            self.logger.warning(f"Energy Balance deviation! {E_balance}")
+
+        return E_balance
 
     def apply_control_stationary(self,
                                  contr_val: float,
@@ -996,14 +936,14 @@ def test_apply_control(path_ecarrier,path_component_def):
     component.reset_state()
     run_res_c=[]
 
-    control_values = [random.uniform(0,.1) for i in tqdm(range(1000000))]
+    control_values = [random.uniform(0,1) for i in tqdm(range(1000000))]
 
     for cv in tqdm(control_values):  # 1 year
         component.apply_control(cv)
         c_state = component.export_state(add_timestep=ts)
         run_res_c.append(c_state)
         ts += 1
-    run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
+    #run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
     res_c.extend(run_res_c)
 
     res_c = pd.DataFrame(res_c)
@@ -1018,8 +958,16 @@ if __name__ == "__main__":
     # ToDo: Continue Profiling
     path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
     path_component_def = Path.cwd() / Path("components/fuel_cell_PEM.yaml")
-    res = test_apply_control(path_ecarrier,path_component_def)
+    # res = test_apply_control(path_ecarrier,path_component_def)
 
+    with Profile() as profile:
+        test_apply_control(path_ecarrier,path_component_def)
+        (
+            Stats(profile)
+            .strip_dirs()
+            .sort_stats(SortKey.CALLS)
+            .print_stats()
+        )
 
 
     # component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
