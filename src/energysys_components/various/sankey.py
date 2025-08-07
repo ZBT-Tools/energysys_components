@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import pandas as pd
 from energysys_components.energy_carrier import ECarrier
 from energysys_components.energy_conversion import ECCParameter
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 
 def sankey_component_input_dicts(res: pd.Series,

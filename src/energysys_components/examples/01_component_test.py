@@ -4,11 +4,11 @@ Simple EnergyConversionComponent()-Tests
 from pathlib import Path
 
 import plotly.graph_objects as go
-import yaml
-
 from energysys_components.energy_carrier import ECarrier
 from energysys_components.energy_conversion import ECCParameter
 from energysys_components.simulation import Simulation
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 if __name__ == "__main__":
     path_ecarrier = Path.cwd().parent / Path("energycarrier/energycarrier.yaml")

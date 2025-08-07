@@ -363,22 +363,11 @@ class EnergyConversionComponent:
         # Calculation of new heatup state, output power and time in operation
         P_out_rel_1, heatup_1, t_op = self._calc_P_change(P_out_rel_targ=P_out_rel_targ)
 
-        # 2.) Efficiency calculation
-        # ---------------------------------------------------------
-        if heatup_1 < 1:
-            eta_1 = self.par.eta_start
-            eta_mc_1 = 1
-        else:
-            eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1)
-            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1)
-
         # 3.) State change calculation
         # ---------------------------------------------------------
         state_1_dict = self._calc_state_change(P_out_rel_1=P_out_rel_1,
                                                heatup_1=heatup_1,
-                                               t_op=t_op,
-                                               eta_1=eta_1,
-                                               eta_mc_1=eta_mc_1)
+                                               t_op=t_op)
 
         # 4.) Update state
         # ---------------------------------------------------------
@@ -398,7 +387,7 @@ class EnergyConversionComponent:
         Calculate new output power P
 
         Considers different power change regions...
-          - [0,self.par.P_out_min_rel):   Startup/Shutdown area   [S]
+          - [0,self.par.P_out_min_rel]:   Startup/Shutdown area   [S]
           - [self.par.P_out_min_rel,100]: Operation range         [O]
 
         results in 3 cases for load increase: [S->S, S->O, O->O],
@@ -415,7 +404,7 @@ class EnergyConversionComponent:
         # ---------------------------------------
         # Additional state calculations prior to contr_val
         # Info: Below minimum load corner point, real component output load is zero.
-        #               However for calculation of changes in heatup or cooldown states it is
+        #               However, for calculation of changes in heatup or cooldown states it is
         #               used as an artificial variable (for simplicity) and is therefore calculated
         #               below based on the below-load-operation state variable heatup_pct.
         #               It is used only internally.
@@ -500,7 +489,7 @@ class EnergyConversionComponent:
         heatup_1 = min(1, P_out_rel_1 / self.par.P_out_min_rel)
 
         if (heatup_1 == 1) and (operation_time == 0):
-            operation_time = 1e-5
+            operation_time = 1e-8
 
         return P_out_rel_1, heatup_1, operation_time
 
@@ -633,7 +622,7 @@ class EnergyConversionComponent:
         # Outlet
         P_out_0 = P_out_rel_0 * par.P_out_rated
         P_out_1 = P_out_rel_1 * par.P_out_rated
-        E_out = (P_out_rel_0 + P_out_rel_1) / 2 * (dt / 60)
+        E_out = (P_out_0 + P_out_1) / 2 * (dt / 60)
 
         # Inlet main conversion
         P_in_mc_1 = P_out_1 / eta_mc_1
@@ -689,9 +678,7 @@ class EnergyConversionComponent:
     def _calc_state_change(self,
                            P_out_rel_1,
                            heatup_1,
-                           t_op,
-                           eta_1,
-                           eta_mc_1) -> dict:
+                           t_op) -> dict:
         """
         Energy calculation from prior state  to new state P_out_rel_1
         Case distinction required:
@@ -704,6 +691,17 @@ class EnergyConversionComponent:
         """
         P_out_rel_0 = self.state.P_out / self.par.P_out_rated
         heatup_0 = self.state.heatup
+
+
+        # 2.) Efficiency calculation
+        # ---------------------------------------------------------
+        if heatup_1 < 1:
+            eta_1 = self.par.eta_start
+            eta_mc_1 = 1
+        else:
+            eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1)
+            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1)
+
 
         # Bulk Energy
         # ----------------------------------------------------------------
@@ -936,7 +934,7 @@ def test_apply_control(path_ecarrier,path_component_def):
     component.reset_state()
     run_res_c=[]
 
-    control_values = [random.uniform(0,1) for i in tqdm(range(1000000))]
+    control_values = [random.uniform(0,1) for _ in tqdm(range(1000000))]
 
     for cv in tqdm(control_values):  # 1 year
         component.apply_control(cv)
@@ -955,15 +953,13 @@ if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
-    # ToDo: Continue Profiling
     path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
     path_component_def = Path.cwd() / Path("components/fuel_cell_PEM.yaml")
-    # res = test_apply_control(path_ecarrier,path_component_def)
+    res = test_apply_control(path_ecarrier,path_component_def)
 
     with Profile() as profile:
         test_apply_control(path_ecarrier,path_component_def)
-        (
-            Stats(profile)
+        (            Stats(profile)
             .strip_dirs()
             .sort_stats(SortKey.CALLS)
             .print_stats()

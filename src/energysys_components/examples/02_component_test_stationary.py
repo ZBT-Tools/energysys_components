@@ -7,6 +7,8 @@ import numpy as np
 
 from energysys_components.energy_carrier import ECarrier
 from src.energysys_components.energy_conversion import ECCState, EnergyConversionComponent, ECCParameter
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 # Select component
 path_ecarrier = Path.cwd().parent / Path("energycarrier/energycarrier.yaml")

@@ -2,6 +2,10 @@
 Unified 0D energy storage component class
 """
 import logging
+from tqdm import tqdm
+import random
+from cProfile import Profile
+from pstats import SortKey, Stats
 from dataclasses import dataclass
 import copy
 from pathlib import Path
@@ -44,6 +48,7 @@ class ESCParameter:
         """
         Returns one or multiple ECC objects from a yaml file.
 
+        :param ecarrier:
         :param yaml_path:
         :return:
         """
@@ -124,7 +129,9 @@ class EnergyStorageComponent:
         """
         Update of storage component
 
-        :param E_req: Energy requirement [kWh], <0 for discharge, >0 for charge
+        :param E_req: Energy requirement [kWh],
+            <0 for discharge,
+            >0 for charge
         :return:
         """
         # Calculation of updated SoC
@@ -183,8 +190,8 @@ class EnergyStorageComponent:
         self.state = state_1
         pass
 
-    def reset(self,
-              reset_capacity: bool = True):
+    def reset_state(self,
+                    reset_capacity: bool = True):
         """
         Reset to initial state
         (e.g. for ML/RL-Algorithms)
@@ -195,23 +202,62 @@ class EnergyStorageComponent:
             self.par.E_cap = 0.001
 
 
-    def export_state(self, add_timestep=None):
+    def export_state(self, add_timestep=None)->dict:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
         if add_timestep is not None:
             c_data["ts"]=add_timestep
-        df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
+        # df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
 
-        return df
+        return c_data
+
+def test_apply_control(path_ecarrier,path_component_def):
+    ec_dict = ECarrier.from_yaml(path_ecarrier)
+    component_def = ESCParameter.from_yaml(path_component_def,ecarrier=ec_dict)
+    component = EnergyStorageComponent(component_def["battery"],ts=1)
+
+
+    # Stationary tests with identical control values:
+    # control_values = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+    ts = 0
+    res_c = []
+    component.reset_state()
+    run_res_c=[]
+
+    control_values = [random.uniform(0,10) for _ in tqdm(range(1000000))]
+
+    for cv in tqdm(control_values):  # 1 year
+        component.apply_control(cv)
+        c_state = component.export_state(add_timestep=ts)
+        run_res_c.append(c_state)
+        ts += 1
+    #run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
+    res_c.extend(run_res_c)
+
+    res_c = pd.DataFrame(res_c)
+
+    return res_c
 
 if __name__ == "__main__":
     """
     See /test for demonstration and examples
     """
+    # path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
+    # ec_dict = ECarrier.from_yaml(path_ecarrier)
+    # path_component_defs = Path.cwd() / Path("components_storage")
+    # component_defs = ESCParameter.from_dir(path_component_defs, ecarrier=ec_dict)
+    # components = [EnergyStorageComponent(par,ts=1) for k,par in component_defs.items()]
+    # states = [c.export_state() for c in components]
+
     path_ecarrier = Path.cwd() / Path("energycarrier/energycarrier.yaml")
-    ec_dict = ECarrier.from_yaml(path_ecarrier)
-    path_component_defs = Path.cwd() / Path("components_storage")
-    component_defs = ESCParameter.from_dir(path_component_defs, ecarrier=ec_dict)
-    components = [EnergyStorageComponent(par,ts=1) for k,par in component_defs.items()]
-    states = [c.export_state() for c in components]
+    path_component_def = Path.cwd() / Path("components_storage/battery.yaml")
+    res = test_apply_control(path_ecarrier,path_component_def)
+
+    # with Profile() as profile:
+    #     test_apply_control(path_ecarrier,path_component_def)
+    #     (            Stats(profile)
+    #         .strip_dirs()
+    #         .sort_stats(SortKey.CALLS)
+    #         .print_stats()
+    #     )

@@ -17,10 +17,10 @@ class Simulation:
                  initial_state: ECCState = None
                  ):
         """
-        :param par:         ECCParameter dataclass object
-        :param state:       ECCState dataclass object
-        :param ts:          timestep [min]
-        # :param debug:     bool, not implemented yet
+        :param component_parameter: ECCParameter dataclass object
+        :param initial_state:       ECCState dataclass object
+        :param timestep:            timestep [min]
+        # :param debug:             bool, not implemented yet
         """
 
         self.component = EnergyConversionComponent(par=component_parameter,
