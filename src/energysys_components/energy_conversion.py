@@ -32,7 +32,7 @@ class ECCParameter:
     E_out_type: ECarrier
 
     # Startup
-    t_start: float  # Time until system is available [Minutes] ("idle") [min]
+    t_start: float  # Time until system is available [Minutes] ("idle") [s]
     E_in_start: float  # Preparation Energy (from cold to idle) [kWh]
     eta_start: float  # For calculation of losses below operation [-]
 
@@ -40,8 +40,8 @@ class ECCParameter:
     P_out_rated: float  # Rated Load [kW]
     P_out_min_rel: float  # Minimum operating load / rated power [-]
 
-    p_change_pos: float  # [% output load/min]
-    p_change_neg: float  # [% output load/min]
+    p_change_pos_perc_min: float  # [% output load/min]
+    p_change_neg_perc_min: float  # [% output load/min]
 
     E_loadchange: list  # load change dependent additional required energy
     # (examples: due to SOFC stack temperature increase)  [[load [-]],[Energy [kWh]]]
@@ -52,11 +52,11 @@ class ECCParameter:
     eta_mc: list  # load dependent efficiency  [[load [-]],[efficiency [-]]]
 
     # Shutdown
-    t_cooldown: float  # Time until system cooled down [Minutes] ("idle to cool")
+    t_cooldown: float  # Time until system cooled down [s] ("idle to cool")
 
     # Secondary energy ratios
     # 1: input flow, 2: electric
-    split_P_sd: list  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio
+    split_P_sd: list  # split of secondary energies, e.g. [0.2,0.8] for 2:8 ratio
 
     # Factor usable heat in loss
     fact_P_heat_P_Loss: float  # [0,1] Factor of usable heat energy in loss
@@ -209,6 +209,11 @@ class ECCParameter:
         self.split_P_sd2 = self.split_P_sd[1] / sum(self.split_P_sd)
 
 
+        # Unit conversion
+        # ---------
+        self.p_change_pos = self.p_change_pos_perc_min / 100 / 60  # [dP_rel/s]
+        self.p_change_neg = self.p_change_neg_perc_min / 100 / 60  # [dP_rel/s]
+
 @dataclass(frozen=False)
 class ECCState:
     """
@@ -281,7 +286,7 @@ class EnergyConversionComponent:
         """
         :param par:         ECCParameter dataclass object
         :param state:       ECCState dataclass object
-        :param ts:          timestep [min]
+        :param ts:          timestep [s]
         # :param debug:     bool, not implemented yet
         """
         if state is None:
@@ -437,8 +442,7 @@ class EnergyConversionComponent:
                 if start_time <= self.ts:  # --> "O" will be reached
                     operation_time = self.ts - start_time
                     P_out_rel_1 = min(P_out_rel_targ,
-                                      self.par.P_out_min_rel + self.par.p_change_pos /
-                                      100 * operation_time)
+                                      self.par.P_out_min_rel + self.par.p_change_pos * operation_time)
                 else:  # --> "O" can't be reached
                     operation_time = 0
                     P_out_rel_1 = min(P_out_rel_targ,
@@ -449,7 +453,7 @@ class EnergyConversionComponent:
             else:
 
                 P_out_rel_1 = min(P_out_rel_targ,
-                                  P_out_rel_0 + self.par.p_change_pos / 100 * self.ts)
+                                  P_out_rel_0 + self.par.p_change_pos * self.ts)
                 operation_time = self.ts
 
         # Negative load changes
@@ -458,7 +462,7 @@ class EnergyConversionComponent:
             # [O->O]
             if P_out_rel_targ >= self.par.P_out_min_rel:
                 P_out_rel_1 = max(P_out_rel_targ,
-                                  P_out_rel_0 - self.par.p_change_neg / 100 * self.ts)
+                                  P_out_rel_0 - self.par.p_change_neg * self.ts)
                 operation_time = self.ts
 
             # [O->S(potentially)]
@@ -466,7 +470,7 @@ class EnergyConversionComponent:
                     (P_out_rel_0 >= self.par.P_out_min_rel):
 
                 unload_P_delta_rel = P_out_rel_0 - self.par.P_out_min_rel  # P rel to min load
-                unload_time = unload_P_delta_rel / (self.par.p_change_neg / 100)  # time to min load
+                unload_time = unload_P_delta_rel / self.par.p_change_neg  # time to min load
 
                 if unload_time < self.ts:  # --> shutdown mode reached
                     P_out_rel_1 = max(P_out_rel_targ,
@@ -476,7 +480,7 @@ class EnergyConversionComponent:
 
                 else:  # --> shutdown mode not reached
                     P_out_rel_1 = max(P_out_rel_targ,
-                                      P_out_rel_0 - self.par.p_change_neg / 100 * self.ts)
+                                      P_out_rel_0 - self.par.p_change_neg * self.ts)
                     operation_time = self.ts
             # [S->S]
             else:

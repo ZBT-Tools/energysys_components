@@ -115,7 +115,7 @@ class EnergyStorageComponent:
         """
         :param par: ESCParams object
         :param state: ESCState object
-        :param ts: timestep [min]
+        :param ts: timestep [s]
         """
 
         self.par = par
