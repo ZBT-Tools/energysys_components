@@ -8,8 +8,8 @@ cracker:
 
   # Startup
   t_start: 1800  # [s]
-  E_in_start: 200
-  eta_start: .5
+  E_in_start: 200  # [kWh]
+  eta_start: .5  # [-]
   # Load Operation
   P_out_min_rel: 0.15  # Minimum operating load [% Load]
   P_out_rated: 2000  # Rated Load [kW]
@@ -28,7 +28,7 @@ cracker:
 
   # Secondary energy ratios
   # 1: input flow, 2: electric
-  split_P_sd: [0.95, 0.05]  # split of secondary energies, eg. [0.2,0.8] for 2:8 ratio,
+  split_P_sd: [0.95, 0.05]  # split of secondary energies, e.g. [0.2,0.8] for 2:8 ratio,
   fact_P_heat_P_Loss: 0
 
   # Techno-economic

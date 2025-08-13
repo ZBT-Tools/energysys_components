@@ -138,22 +138,22 @@ class EnergyStorageComponent:
         # -----------------------------
         E_SoC_0 = self.state.SoC * self.par.E_cap  # [kWh]
 
-        if E_req <= 0:  # -> bat. discharge
+        if E_req <= 0:  # ... bat. discharge
             E_SoC_1 = E_SoC_0 + E_req
             E_out = - E_req
-            P_out = - E_req / (self.ts / 60)
+            P_out = - E_req / (self.ts / 60 / 60)
             E_in = 0
             P_in = 0
             E_loss = 0
             P_loss = 0
-        else:  # ... charge with efficiency
+        else:  # ... battery charge with efficiency
             E_SoC_1 = E_SoC_0 + self.par.eta * E_req
             E_loss = (1 - self.par.eta) * E_req
             E_out = 0
             P_out = 0
             E_in = E_req
-            P_in = E_req / (self.ts / 60)
-            P_loss = E_loss / (self.ts / 60)
+            P_in = E_req / (self.ts / 60 / 60)
+            P_loss = E_loss / (self.ts / 60 / 60)
 
         # If allowed and required, update capacity
         if E_SoC_1 < 0:
@@ -202,12 +202,16 @@ class EnergyStorageComponent:
             self.par.E_cap = 0.001
 
 
-    def export_state(self, add_timestep=None)->dict:
+    def export_state(self,
+                     add_timestep=None,
+                     add_index=None)->dict:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
         if add_timestep is not None:
-            c_data["ts"]=add_timestep
+            c_data["time_s"]=add_timestep
+        if add_index is not None:
+            c_data["time_index"] = add_index
         # df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
 
         return c_data
@@ -215,12 +219,14 @@ class EnergyStorageComponent:
 def test_apply_control(path_ecarrier,path_component_def):
     ec_dict = ECarrier.from_yaml(path_ecarrier)
     component_def = ESCParameter.from_yaml(path_component_def,ecarrier=ec_dict)
-    component = EnergyStorageComponent(component_def["battery"],ts=1)
+    timestep_s = 10
+    component = EnergyStorageComponent(component_def["battery"],ts=timestep_s)
 
 
     # Stationary tests with identical control values:
     # control_values = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
     ts = 0
+    ts_ix = 0
     res_c = []
     component.reset_state()
     run_res_c=[]
@@ -231,7 +237,8 @@ def test_apply_control(path_ecarrier,path_component_def):
         component.apply_control(cv)
         c_state = component.export_state(add_timestep=ts)
         run_res_c.append(c_state)
-        ts += 1
+        ts += timestep_s
+        ts_ix += 1
     #run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
     res_c.extend(run_res_c)
 

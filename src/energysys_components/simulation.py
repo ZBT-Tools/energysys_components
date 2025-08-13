@@ -13,7 +13,7 @@ class Simulation:
     def __init__(self,
                  component_parameter: ECCParameter,
                  loadprofile: list = None,
-                 timestep: int = 1,
+                 timestep_s: int = 1,
                  initial_state: ECCState = None
                  ):
         """
@@ -22,9 +22,9 @@ class Simulation:
         :param timestep:            timestep [min]
         # :param debug:             bool, not implemented yet
         """
-
+        self.timestep_s =timestep_s
         self.component = EnergyConversionComponent(par=component_parameter,
-                                                   ts=timestep,
+                                                   ts=timestep_s,
                                                    state=initial_state)
         self.loadprofile = loadprofile
 
@@ -35,10 +35,20 @@ class Simulation:
         self.results.loc[0] = vars(ECCState())
 
     def run(self):
+        run_res_c=[]
+        # initial state
+        c_state = self.component.export_state(add_timestep=0, add_index=0)
+        run_res_c.append(c_state)
+
         for ix, loadtarget in enumerate(self.loadprofile):
             self.component.apply_control(loadtarget)
-            self.results = pd.concat([self.results,
-                                      pd.DataFrame([vars(self.component.state)])],
+            c_state = self.component.export_state(add_timestep=(ix+1)*self.timestep_s, add_index=ix+1)
+            run_res_c.append(c_state)
+        run_res_c = pd.DataFrame(run_res_c)
+
+
+        self.results = pd.concat([self.results,
+                                      run_res_c],
                                      axis=0,  ignore_index=True)
 
 

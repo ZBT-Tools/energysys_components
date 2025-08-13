@@ -18,7 +18,7 @@ component = components["PEM"]
 
 
 off_state = ECCState()
-timestep_s =1
+timestep_s =20
 
 if __name__ == "__main__":
     # Result DataFrame Initialization
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # Create traces
     for cl in df1.columns:
-        fig.add_trace(go.Scatter(x=df1.Target[1:], y=df1[cl][1:],
+        fig.add_trace(go.Scatter(x=df1.Target[:], y=df1[cl][:],
                                  mode='lines',
                                  name=cl))
     fig.update_layout(xaxis_title="Target rel. output load [-]")

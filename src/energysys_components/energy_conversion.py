@@ -243,6 +243,7 @@ class ECCState:
 
     # Output
     P_out: float = 0  # [kW]
+    P_out_target: float = 0  # [kW]
     E_out: float = 0  # [kWh]
 
     # Loss
@@ -378,7 +379,8 @@ class EnergyConversionComponent:
         # ---------------------------------------------------------
         state_1 = ECCState(**state_1_dict,
                            opex_Eur=0,
-                           SoH=1)
+                           SoH=1,
+                           P_out_target=P_out_rel_targ*self.par.P_out_rated)
 
         if not hypothetical_step:
             self.state = state_1
@@ -403,7 +405,7 @@ class EnergyConversionComponent:
 
         :return: P_out_rel_1  new P_out_rel [-]
         :return: heatup_1 new heatup state [-]
-        :return: t_op time in operation [min]
+        :return: t_op time in operation [s]
         """
         # Initialization
         # ---------------------------------------
@@ -504,6 +506,9 @@ class EnergyConversionComponent:
                            include_power: bool
                            ):
         """
+        Energy in kkWh!
+
+
             Simple cases:
             - heatup with maximum energy input (NLNL1)
             - cooldown without any energy input (NLNL2)
@@ -526,7 +531,7 @@ class EnergyConversionComponent:
         # Additional compensation energy calculations for NLNL3 - NLNL5
         # NLNL3
         if (heatup_1 == heatup_0) and (heatup_1 != 0):
-            E_in_no_compens = min(1, dt / par.t_cooldown) * par.E_start_bulk
+            E_in_no_compens = min(1., dt / par.t_cooldown) * par.E_start_bulk
             E_loss_no_compens = E_in_no_compens
 
         # NLNL4
@@ -535,7 +540,7 @@ class EnergyConversionComponent:
             fact = (heatup_1 - heatup_0) / (
                     min(1., heatup_0 + dt / par.t_start) - heatup_0)
             E_in_no_compens = (1 - fact) * (
-                    min(1, dt / par.t_cooldown) * par.E_start_bulk)
+                    min(1., dt / par.t_cooldown) * par.E_start_bulk)
             E_loss_no_compens = E_in_no_compens
 
         # NLNL5
@@ -554,18 +559,18 @@ class EnergyConversionComponent:
 
         # Inlet
         E_in = E_in_no + E_in_no_compens
-        P_in = E_in / (dt / 60)
+        P_in = E_in / (dt / 60 / 60)
 
         # Inlet secondary
         E_in_sd1 = par.split_P_sd1 * E_in
         E_in_sd2 = par.split_P_sd2 * E_in
 
-        P_in_sd1 = E_in_sd1 / (dt / 60)
-        P_in_sd2 = E_in_sd2 / (dt / 60)
+        P_in_sd1 = E_in_sd1 / (dt / 60 / 60)
+        P_in_sd2 = E_in_sd2 / (dt / 60 / 60)
 
         # Loss
         E_loss = E_loss_no + E_loss_no_compens
-        P_loss = E_loss / (dt / 60)
+        P_loss = E_loss / (dt / 60 / 60)
 
         E_heat = par.fact_P_heat_P_Loss * E_loss
         P_heat = par.fact_P_heat_P_Loss * P_loss
@@ -601,6 +606,7 @@ class EnergyConversionComponent:
                          d_E_bulk_op,
                          include_power: bool):
         """
+        Energy in kkWh!
 
         :param P_out_rel_0:
         :param P_out_rel_1:
@@ -620,26 +626,26 @@ class EnergyConversionComponent:
         E_in_sd_loadchange = max(0., d_E_bulk_op)
         E_loss_loadchange = abs(min(0., d_E_bulk_op))
 
-        P_in_sd_loadchange = E_in_sd_loadchange / (dt / 60)
-        P_loss_loadchange = E_loss_loadchange / (dt / 60)
+        P_in_sd_loadchange = E_in_sd_loadchange / (dt / 60 / 60)
+        P_loss_loadchange = E_loss_loadchange / (dt / 60 / 60)
 
         # Outlet
         P_out_0 = P_out_rel_0 * par.P_out_rated
         P_out_1 = P_out_rel_1 * par.P_out_rated
-        E_out = (P_out_0 + P_out_1) / 2 * (dt / 60)
+        E_out = (P_out_0 + P_out_1) / 2 * (dt / 60 / 60)
 
         # Inlet main conversion
         P_in_mc_1 = P_out_1 / eta_mc_1
         P_in_mc_0 = P_out_0 / eta_mc_0
 
-        E_in_mc = (P_in_mc_0 + P_in_mc_1) / 2 * (dt / 60)
+        E_in_mc = (P_in_mc_0 + P_in_mc_1) / 2 * (dt / 60 / 60)
 
         # Inlet combined
         P_in_wo_lc_1 = P_out_1 / eta_1
         P_in_wo_lc_0 = P_out_0 / eta_0
 
         P_in = P_in_wo_lc_1 + P_in_sd_loadchange
-        E_in_wo_lc = (P_in_wo_lc_1 + P_in_wo_lc_0) / 2 * (dt / 60)
+        E_in_wo_lc = (P_in_wo_lc_1 + P_in_wo_lc_0) / 2 * (dt / 60 / 60)
         E_in = E_in_wo_lc + E_in_sd_loadchange
 
         # Inlet secondary
@@ -701,10 +707,9 @@ class EnergyConversionComponent:
         # ---------------------------------------------------------
         if heatup_1 < 1:
             eta_1 = self.par.eta_start
-            eta_mc_1 = 1
         else:
             eta_1 = self.par.eta_ip_P_out_rel(P_out_rel_1)
-            eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1)
+        eta_mc_1 = self.par.eta_mc_ip_P_out_rel(P_out_rel_1)
 
 
         # Bulk Energy
@@ -805,9 +810,7 @@ class EnergyConversionComponent:
         return state_dict
 
     def _balance(self, state0:dict,state1:dict):
-
-        # ToDo: check smaler tolerance value
-        tol = 1e-4
+        tol = 1e-5
         st0 = state0
         st1 = state1
 
@@ -830,7 +833,7 @@ class EnergyConversionComponent:
 
     def apply_control_stationary(self,
                                  contr_val: float,
-                                 max_iterations=100) -> None:
+                                 max_iterations=3600*4) -> None:
         """
         Performs step_action() until target "contr_val" is reached.
         Condition for stationary state:
@@ -912,13 +915,17 @@ class EnergyConversionComponent:
         self.state = copy.deepcopy(self.state_initial)
 
 
-    def export_state(self, add_timestep=None)-> dict:
+    def export_state(self,
+                     add_timestep=None,
+                     add_index=None)-> dict:
         # Component state information
         c_data = dict()
         c_data.update(self.state.__dict__)
         c_data["name"] = self.par.name
         if add_timestep is not None:
-            c_data["ts"]=add_timestep
+            c_data["time_s"]=add_timestep
+        if add_index is not None:
+            c_data["time_index"] = add_index
         # df = pd.DataFrame.from_dict(c_data, orient='index').transpose()
 
         return c_data
@@ -928,12 +935,15 @@ class EnergyConversionComponent:
 def test_apply_control(path_ecarrier,path_component_def):
     ec_dict = ECarrier.from_yaml(path_ecarrier)
     component_def = ECCParameter.from_yaml(path_component_def,ecarrier=ec_dict)
-    component = EnergyConversionComponent(component_def["PEM"],ts=1)
+    timestep_s= 10
+
+    component = EnergyConversionComponent(component_def["PEM"],ts=timestep_s)
 
 
     # Stationary tests with identical control values:
     # control_values = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
     ts = 0
+    ts_ix = 0
     res_c = []
     component.reset_state()
     run_res_c=[]
@@ -942,9 +952,10 @@ def test_apply_control(path_ecarrier,path_component_def):
 
     for cv in tqdm(control_values):  # 1 year
         component.apply_control(cv)
-        c_state = component.export_state(add_timestep=ts)
+        c_state = component.export_state(add_timestep=ts, add_index=ts_ix)
         run_res_c.append(c_state)
-        ts += 1
+        ts += timestep_s
+        ts_ix +=1
     #run_res_c = [dict(item, **{'run name': cv}) for item in run_res_c]
     res_c.extend(run_res_c)
 
@@ -961,13 +972,13 @@ if __name__ == "__main__":
     path_component_def = Path.cwd() / Path("components/fuel_cell_PEM.yaml")
     res = test_apply_control(path_ecarrier,path_component_def)
 
-    with Profile() as profile:
-        test_apply_control(path_ecarrier,path_component_def)
-        (            Stats(profile)
-            .strip_dirs()
-            .sort_stats(SortKey.CALLS)
-            .print_stats()
-        )
+    # with Profile() as profile:
+    #     test_apply_control(path_ecarrier,path_component_def)
+    #     (            Stats(profile)
+    #         .strip_dirs()
+    #         .sort_stats(SortKey.CUMULATIVE)
+    #         .print_stats()
+    #     )
 
 
     # component_defs = ECCParameter.from_dir(path_component_defs,ecarrier=ec_dict)
